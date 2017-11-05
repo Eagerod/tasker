@@ -1,5 +1,6 @@
 import os
 import sqlite3
+import sys
 from datetime import date, timedelta
 
 
@@ -66,7 +67,7 @@ class TaskCreator(object):
             for row in cursor:
                 if row == (0,):
                     return name
-                print 'Task already exists.'
+                print >> sys.stderr, 'Task already exists.'
 
     def _get_cadence(self):
         while True:
@@ -86,12 +87,15 @@ class TaskCreator(object):
             try:
                 return date(*[int(i) for i in start.split('-')])
             except:
-                print 'Not a valid (YYYY-MM-DD)'
+                print >> sys.stderr, 'Not a valid (YYYY-MM-DD)'
 
     def create_task_from_user_input(self):
         name = self._get_task_name()
         cadence = self._get_cadence()
-        start = self._get_first_date()
+        while True:
+            start = self._get_first_date()
+            if cadence == Cadence.MONTHLY and start.day > 28:
+                print >> sys.stderr, 'Cannot have monthly tasks scheduled after the 28th.'
 
         cursor = self.db.cursor()
         cursor.execute(Queries.INSERT_TASK, (name, cadence, start))
@@ -162,6 +166,7 @@ class TaskPrinter(object):
             print 'Things to do:'
             for row in task_instances:
                 print '    {}. ({}) {}'.format(row[0], row[2], row[1])
+            print 'To complete any task, use:\n    {} --complete N'.format(sys.argv[0])
 
 
 class TaskerCli(object):
