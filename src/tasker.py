@@ -52,6 +52,8 @@ class Cadence(object):
     WEEKLY = 'weekly'
     MONTHLY = 'monthly'
 
+    ALL = (DAILY, WEEKLY, MONTHLY)
+
 
 class TaskCreator(object):
     def __init__(self, db):
@@ -72,14 +74,15 @@ class TaskCreator(object):
     def _get_cadence(self):
         while True:
             print 'Available cadences:'
-            print '  1. Daily\n  2. Weekly\n  3. Monthly'
+            print '\n'.join('  {}. {}'.format(i+1, o.title()) for i, o in enumerate(Cadence.ALL))
             cadence = raw_input('Select cadence: ')
-            if cadence == '1' or cadence.lower() == Cadence.DAILY:
-                return Cadence.DAILY
-            if cadence == '2' or cadence.lower() == Cadence.WEEKLY:
-                return Cadence.WEEKLY
-            if cadence == '3' or cadence.lower() == Cadence.MONTHLY:
-                return Cadence.MONTHLY
+            try:
+                cadence = Cadence.ALL[int(cadence) - 1]
+            except ValueError:
+                pass
+
+            if cadence.lower() in Cadence.ALL:
+                return cadence
 
     def _get_first_date(self):
         while True:
@@ -94,8 +97,9 @@ class TaskCreator(object):
         cadence = self._get_cadence()
         while True:
             start = self._get_first_date()
-            if cadence == Cadence.MONTHLY and start.day > 28:
-                print >> sys.stderr, 'Cannot have monthly tasks scheduled after the 28th.'
+            if not (cadence == Cadence.MONTHLY and start.day > 28):
+                break
+            print >> sys.stderr, 'Cannot have monthly tasks scheduled after the 28th.'
 
         cursor = self.db.cursor()
         cursor.execute(Queries.INSERT_TASK, (name, cadence, start))
