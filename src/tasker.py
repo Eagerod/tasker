@@ -27,10 +27,10 @@ class Queries(object):
         WHERE ti.done = "false";
     '''
     SELECT_SCHEDULABLE_TASKS = '''
-        SELECT t.id, t.name, t.cadence, t.start, MAX(ti.date), ti.done
+        SELECT t.id, t.name, t.cadence, t.start, ti.date, ti.done
         FROM tasks t
         LEFT JOIN (
-            SELECT task, max(date) as date, done from tis
+            SELECT task, max(date) AS date, done FROM tis GROUP BY task, done
         ) ti ON t.id = ti.task
         GROUP BY t.id, t.name, t.cadence, t.start, ti.done
         ORDER BY t.id, ti.done;
@@ -132,8 +132,11 @@ class TaskUpdater(object):
             #    - The most recent ti is not done. (Leave it)
             #    - There has never been a ti. (Make one)
             next_date = self._get_next_date(row[2], row[3], row[4])
+            if next_date == row[4] or next_date > today_date:
+                continue
+
             if next_date <= today_date and row[5] != 'false':
-                insert_statements.append((row[0], self._get_next_date(row[2], row[3], row[4])))
+                insert_statements.append((row[0], next_date))
 
         cursor = self.db.cursor()
         cursor.executemany(Queries.INSERT_TI, insert_statements)
