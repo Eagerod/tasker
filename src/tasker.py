@@ -77,7 +77,7 @@ class TaskCreator(object):
                 return Cadence.DAILY
             if cadence == '2' or cadence.lower() == Cadence.WEEKLY:
                 return Cadence.WEEKLY
-            if cadence == '3'  or cadence.lower() == Cadence.MONTHLY:
+            if cadence == '3' or cadence.lower() == Cadence.MONTHLY:
                 return Cadence.MONTHLY
 
     def _get_first_date(self):
@@ -85,7 +85,7 @@ class TaskCreator(object):
             start = raw_input('When does this start (YYYY-MM-DD): ')
             try:
                 return date(*[int(i) for i in start.split('-')])
-            except Exception as e:
+            except:
                 print 'Not a valid (YYYY-MM-DD)'
 
     def create_task_from_user_input(self):
@@ -118,7 +118,6 @@ class TaskUpdater(object):
                 return (recent_date.replace(year=recent_date.year + 1, month=1)).isoformat()
             return (recent_date.replace(month=recent_date.month + 1)).isoformat()
 
-
     def update_task_instances(self):
         cursor = self.db.cursor()
         cursor.execute(Queries.SELECT_SCHEDULABLE_TASKS)
@@ -128,7 +127,7 @@ class TaskUpdater(object):
         insert_statements = []
 
         for row in cursor:
-            # Three possible cases. 
+            # Three possible cases.
             #    - The most recent ti is done. (Check date and maybe create a new one)
             #    - The most recent ti is not done. (Leave it)
             #    - There has never been a ti. (Make one)
