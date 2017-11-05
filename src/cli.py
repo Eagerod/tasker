@@ -6,26 +6,50 @@ from datetime import date
 
 from tasker import Tasker, InvalidStartDateException, DuplicateNameException, InvalidCadenceException
 
-class Queries(object):
-    SELECT_INCOMPLETE_TIS = '''
-        SELECT ti.id, t.name, ti.date
-        FROM tasks t
-        JOIN tis ti ON ti.task = t.id
-        WHERE ti.done = "false";
-    '''
 
-class TaskCreator(object):
-    def __init__(self, db):
-        self.db = db
+class TaskerCli(object):
+    def __init__(self, database=None):
+        if not database:
+            database = os.path.join(os.path.expanduser('~'), '.tasker.sqlite')
+
+        self.db = sqlite3.connect(database)
+        self.tasker = Tasker(self.db)
+
+    def create_task(self):
+        name = self._get_task_name()
+        cadence = self._get_cadence()
+        while True:
+            start = self._get_first_date()
+            try:
+                self.tasker.assert_start_date_valid(cadence, start)
+                break
+            except InvalidStartDateException as e:
+                print >> sys.stderr, e.message
+
+        self.tasker.create_task(name, cadence, start)
+
+    def print_tasks(self):
+        self.tasker.schedule_tasks()
+        self._print_remaining_tasks()
+
+    def complete_task(self, ti_id):
+        self.tasker.complete_task_instance(ti_id)
+
+    def _print_remaining_tasks(self):
+        task_instances = self.tasker.get_incomplete_task_instances()
+        if len(task_instances):
+            print 'Things to do:'
+            for row in task_instances:
+                print '  {}. ({}) {}'.format(str(row.id).rjust(5), row.date, row.task)
+            print 'To complete any task, use:\n    {} --complete N'.format(sys.argv[0])
 
     def _get_task_name(self):
-        tasker = Tasker(self.db)
         cursor = self.db.cursor()
 
         while True:
             name = raw_input('Enter task name: ')
             try:
-                tasker.assert_name_unique(name)
+                self.tasker.assert_name_unique(name)
                 return name
             except DuplicateNameException as e:
                 print >> sys.stderr, e.message
@@ -42,7 +66,7 @@ class TaskCreator(object):
 
             cadence = cadence.lower()
             try:
-                Tasker(self.db).assert_cadence_valid(cadence)
+                self.tasker.assert_cadence_valid(cadence)
                 return cadence
             except InvalidCadenceException as e:
                 print >> sys.stderr, e.message
@@ -54,57 +78,6 @@ class TaskCreator(object):
                 return date(*[int(i) for i in start.split('-')])
             except:
                 print >> sys.stderr, 'Not a valid (YYYY-MM-DD)'
-
-    def create_task_from_user_input(self):
-        tasker = Tasker(self.db)
-        name = self._get_task_name()
-        cadence = self._get_cadence()
-        while True:
-            start = self._get_first_date()
-            try:
-                tasker.assert_start_date_valid(cadence, start)
-                break
-            except InvalidStartDateException as e:
-                print >> sys.stderr, e.message
-
-        Tasker(self.db).create_task(name, cadence, start)
-
-
-class TaskPrinter(object):
-    def __init__(self, db):
-        self.db = db
-
-    def print_remaining_tasks(self):
-        cursor = self.db.cursor()
-        cursor.execute(Queries.SELECT_INCOMPLETE_TIS)
-        self.db.commit()
-
-        task_instances = cursor.fetchall()
-        if len(task_instances):
-            print 'Things to do:'
-            for row in task_instances:
-                print '    {}. ({}) {}'.format(row[0], row[2], row[1])
-            print 'To complete any task, use:\n    {} --complete N'.format(sys.argv[0])
-
-
-class TaskerCli(object):
-    def __init__(self, database=None):
-        if not database:
-            database = os.path.join(os.path.expanduser('~'), '.tasker.sqlite')
-
-        self.db = sqlite3.connect(database)
-        self.tasker = Tasker(self.db)
-
-    def create_task(self):
-        TaskCreator(self.db).create_task_from_user_input()
-
-    def print_tasks(self):
-        self.tasker.schedule_tasks()
-        TaskPrinter(self.db).print_remaining_tasks()
-
-    def complete_task(self, ti_id):
-        self.tasker.complete_task_instance(ti_id)
-
 
 
 def do_program():

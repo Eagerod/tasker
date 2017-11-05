@@ -1,7 +1,11 @@
 import os
 import sqlite3
 import sys
+from collections import namedtuple
 from datetime import date, timedelta
+
+
+TaskInstance = namedtuple('TaskInstance', ['id', 'task', 'date', 'done'])
 
 
 class TaskerException(Exception):
@@ -48,6 +52,13 @@ class Queries(object):
     '''
     SELECT_TASK_BY_NAME = '''
         SELECT count(*) FROM tasks WHERE name = ?;
+    '''    
+    SELECT_INCOMPLETE_TIS = '''
+        SELECT ti.id, t.name, ti.date
+        FROM tasks t
+        JOIN tis ti ON ti.task = t.id
+        WHERE ti.done = "false"
+        ORDER BY ti.date;
     '''
     INSERT_TASK = '''
         INSERT INTO tasks (name, cadence, start) VALUES (?,?,?)
@@ -216,3 +227,13 @@ class Tasker(object):
         cursor = self.db.cursor()
         cursor.execute(Queries.UPDATE_TI_DONE, (ti_id,))
         self.db.commit()
+
+    def get_incomplete_task_instances(self):
+        """
+        Returns a list of named tuples of the task instances that are still pending. Sorted by scheduled date ascending.
+        """
+        cursor = self.db.cursor()
+        cursor.execute(Queries.SELECT_INCOMPLETE_TIS)
+        self.db.commit()
+
+        return [TaskInstance(t[0], t[1], t[2], 'false') for t in cursor.fetchall()]
