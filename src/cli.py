@@ -44,8 +44,6 @@ class TaskerCli(object):
             print 'To complete any task, use:\n    {} --complete N'.format(sys.argv[0])
 
     def _get_task_name(self):
-        cursor = self.db.cursor()
-
         while True:
             name = raw_input('Enter task name: ')
             try:
@@ -76,8 +74,8 @@ class TaskerCli(object):
             start = raw_input('When does this start (YYYY-MM-DD): ')
             try:
                 return date(*[int(i) for i in start.split('-')])
-            except:
-                print >> sys.stderr, 'Not a valid (YYYY-MM-DD)'
+            except (TypeError, ValueError) as e:
+                print >> sys.stderr, 'Not a valid (YYYY-MM-DD) ({})'.format(e.message)
 
 
 def do_program():

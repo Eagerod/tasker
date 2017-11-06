@@ -1,6 +1,3 @@
-import os
-import sqlite3
-import sys
 from collections import namedtuple
 from datetime import date, timedelta
 
@@ -54,13 +51,13 @@ class Queries(object):
         FROM tasks t
         LEFT JOIN (
             SELECT task, date, done FROM latest_tis
-        ) ti ON t.id = ti.task 
+        ) ti ON t.id = ti.task
         GROUP BY t.id, t.name, t.cadence, t.start, ti.done
         ORDER BY t.id, ti.done;
     '''
     SELECT_TASK_BY_NAME = '''
         SELECT count(*) FROM tasks WHERE name = ?;
-    '''    
+    '''
     SELECT_INCOMPLETE_TIS = '''
         SELECT ti.id, t.name, ti.date
         FROM tasks t
@@ -144,7 +141,7 @@ class Tasker(object):
         """
         Ensure that the provided cadence exists in the set of supported cadences.
 
-        :raises 
+        :raises InvalidCadenceException: If the cadence is not present in the list of available/configured cadences.
         """
         if cadence not in Tasker.Cadence.ALL:
             raise InvalidCadenceException('Cadence {} not available.')
@@ -196,7 +193,7 @@ class Tasker(object):
     def schedule_tasks(self, until_date=None):
         """
         Search through the list of all tasks, and ensure that if a task could be scheduled on or before today's date,
-        that it exists in the database with the earliest of possible dates. i.e. The next task instance should be 
+        that it exists in the database with the earliest of possible dates. i.e. The next task instance should be
         scheduled if it's not in the future.
         """
         cursor = self.db.cursor()
