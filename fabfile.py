@@ -23,3 +23,8 @@ def coverage():
     setup(quiet=True)
     local('coverage run -m unittest discover -v -t . -s tests')
     local('coverage report')
+
+
+@task
+def install_globally():
+    local('pip install --upgrade .')
