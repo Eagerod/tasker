@@ -88,6 +88,57 @@ class TaskerTest(TestCase):
             (1, '2017-01-04', 'false')
         ])
 
+    def test_schedule_tasks_repeated(self):
+        tasker = Tasker(self.db)
+
+        # All tasks should be scheduled
+        tasker.create_task('Make coffee', 'daily', date(2016, 11, 3))
+        tasker.create_task('Get gas', 'weekly', date(2016, 11, 5))
+        tasker.create_task('Pay bills', 'monthly', date(2016, 11, 4))
+
+        tasker.schedule_tasks()
+        tasker.schedule_tasks()
+        tasker.schedule_tasks()
+
+        cursor = self.db.cursor()
+        cursor.execute('SELECT task, date, done FROM tis ORDER BY date;')
+        self.db.commit()
+
+        tis = cursor.fetchall()
+
+        self.assertEqual(tis, [
+            (1, '2016-11-03', 'false'),
+            (3, '2016-11-04', 'false'),
+            (2, '2016-11-05', 'false')
+        ])
+
+    def test_schedule_tasks_repeated_some_tasks_done(self):
+        tasker = Tasker(self.db)
+
+        # All tasks should be scheduled
+        tasker.create_task('Make coffee', 'daily', date(2016, 11, 3))
+        tasker.create_task('Get gas', 'weekly', date(2016, 11, 5))
+        tasker.create_task('Pay bills', 'monthly', date(2016, 11, 4))
+
+        tasker.schedule_tasks()
+        tasker.complete_task_instance(1)
+        tasker.complete_task_instance(2)
+        tasker.complete_task_instance(3)
+        tasker.schedule_tasks()
+        tasker.schedule_tasks()
+
+        cursor = self.db.cursor()
+        cursor.execute('SELECT task, date, done FROM tis ORDER BY date;')
+        self.db.commit()
+
+        tis = cursor.fetchall()
+
+        self.assertEqual(tis, [
+            (1, '2016-11-03', 'false'),
+            (3, '2016-11-04', 'false'),
+            (2, '2016-11-05', 'false')
+        ])
+
     def test_complete_task_instance(self):
         tasker = Tasker(self.db)
 
