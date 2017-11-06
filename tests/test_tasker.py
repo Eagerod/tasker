@@ -67,6 +67,19 @@ class TaskerTest(TestCase):
             (2, '2016-11-05', 'false')
         ])
 
+    def test_schedule_tasks_nothing_exists(self):
+        tasker = Tasker(self.db)
+
+        tasker.schedule_tasks()
+
+        cursor = self.db.cursor()
+        cursor.execute('SELECT task, date, done FROM tis ORDER BY date;')
+        self.db.commit()
+
+        tis = cursor.fetchall()
+
+        self.assertEqual(tis, [])
+
     def test_schedule_tasks_new_year(self):
         tasker = Tasker(self.db)
 

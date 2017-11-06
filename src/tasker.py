@@ -196,6 +196,8 @@ class Tasker(object):
         that it exists in the database with the earliest of possible dates. i.e. The next task instance should be
         scheduled if it's not in the future.
         """
+        self._initialize_db()
+
         cursor = self.db.cursor()
         cursor.execute(Queries.SELECT_SCHEDULABLE_TASKS)
         self.db.commit()
