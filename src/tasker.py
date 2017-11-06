@@ -41,12 +41,20 @@ class Queries(object):
             done BOOLEAN DEFAULT false
         );
     '''
+    CREATE_LATEST_TIS_VIEW = '''
+        CREATE VIEW IF NOT EXISTS latest_tis AS
+            SELECT ti.id AS id, ti.task AS task, ti.date AS date, ti.done AS done FROM tis ti
+            JOIN (
+                SELECT task, max(date) AS date FROM tis GROUP BY task
+            ) mti
+            ON mti.task = ti.task AND ti.date = mti.date;
+    '''
     SELECT_SCHEDULABLE_TASKS = '''
         SELECT t.id, t.name, t.cadence, t.start, ti.date, ti.done
         FROM tasks t
         LEFT JOIN (
-            SELECT task, max(date) AS date, done FROM tis GROUP BY task, done
-        ) ti ON t.id = ti.task
+            SELECT task, date, done FROM latest_tis
+        ) ti ON t.id = ti.task 
         GROUP BY t.id, t.name, t.cadence, t.start, ti.done
         ORDER BY t.id, ti.done;
     '''
@@ -104,6 +112,7 @@ class Tasker(object):
         cursor = self.db.cursor()
         cursor.execute(Queries.CREATE_TASKS_TABLE)
         cursor.execute(Queries.CREATE_TASK_INSTANCES_TABLE)
+        cursor.execute(Queries.CREATE_LATEST_TIS_VIEW)
         self.db.commit()
 
         self._db_initialized = True
@@ -139,7 +148,6 @@ class Tasker(object):
         """
         if cadence not in Tasker.Cadence.ALL:
             raise InvalidCadenceException('Cadence {} not available.')
-
 
     def assert_name_unique(self, name):
         """

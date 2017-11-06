@@ -112,7 +112,7 @@ class TaskerTest(TestCase):
             (2, '2016-11-05', 'false')
         ])
 
-    def test_schedule_tasks_repeated_some_tasks_done(self):
+    def test_schedule_tasks_repeated_tasks_done(self):
         tasker = Tasker(self.db)
 
         # All tasks should be scheduled
@@ -128,15 +128,18 @@ class TaskerTest(TestCase):
         tasker.schedule_tasks()
 
         cursor = self.db.cursor()
-        cursor.execute('SELECT task, date, done FROM tis ORDER BY date;')
+        cursor.execute('SELECT task, date, done FROM tis ORDER BY date, task;')
         self.db.commit()
 
         tis = cursor.fetchall()
 
         self.assertEqual(tis, [
-            (1, '2016-11-03', 'false'),
-            (3, '2016-11-04', 'false'),
-            (2, '2016-11-05', 'false')
+            (1, '2016-11-03', 'true'),
+            (1, '2016-11-04', 'false'),
+            (3, '2016-11-04', 'true'),
+            (2, '2016-11-05', 'true'),
+            (2, '2016-11-12', 'false'),
+            (3, '2016-12-04', 'false')
         ])
 
     def test_complete_task_instance(self):
