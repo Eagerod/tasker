@@ -22,7 +22,7 @@ def test():
 def coverage():
     setup(quiet=True)
     local('coverage run -m unittest discover -v -t . -s tests')
-    local('coverage report')
+    local('coverage report -m')
 
 
 @task
