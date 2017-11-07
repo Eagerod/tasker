@@ -8,7 +8,7 @@ setuptools.setup(
     description='manage recurring tasks on the command line.',
     author='Aleem Haji',
     author_email='hajial@gmail.com',
-    packages=['tasker'],
+    packages=['tasker', 'tasker.intervals'],
     package_dir={'tasker': 'src'},
     entry_points={
         'console_scripts': [
