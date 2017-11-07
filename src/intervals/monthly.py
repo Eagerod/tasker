@@ -12,3 +12,7 @@ class MonthlyInterval(BaseInterval):
     @staticmethod
     def is_compatible(date):
         return date.day <= 28
+
+    @staticmethod
+    def approximate_period():
+        return 30

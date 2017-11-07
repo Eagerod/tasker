@@ -7,3 +7,7 @@ class DailyInterval(BaseInterval):
     @staticmethod
     def next_interval(start_date):
         return start_date + timedelta(days=1)
+
+    @staticmethod
+    def approximate_period():
+        return 1

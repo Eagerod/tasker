@@ -17,16 +17,20 @@ class TaskerCli(object):
         self.tasker = Tasker(self.db)
 
         # Attempt to load up all intervals from the intervals directory.
+        self.all_cadences = {}
         intervals_dir = os.path.realpath(os.path.join(os.path.dirname(__file__), 'intervals'))
         for f in os.listdir(intervals_dir):
             # Only take py files
             if not f.endswith('.py') or f in ('__init__.py', 'base_interval.py', 'interval_factory.py'):
                 continue
 
+            interval_name = f.replace('.py', '')
             try:
-                IntervalFactory.get(f.replace('.py', ''))
+                interval = IntervalFactory.get(interval_name)
             except UnsupportedIntervalException:
                 pass
+
+            self.all_cadences[interval.approximate_period()] = (interval_name, interval)
 
     def create_task(self):
         name = self._get_task_name()
@@ -66,13 +70,14 @@ class TaskerCli(object):
                 print >> sys.stderr, e.message
 
     def _get_cadence(self):
-        available_cadences = IntervalFactory.known_intervals()
+        all_cadences_keys = sorted(self.all_cadences.keys())
+
         while True:
             print 'Available cadences:'
-            print '\n'.join('  {}. {}'.format(i+1, o.title()) for i, o in enumerate(available_cadences))
+            print '\n'.join('  {}. {}'.format(i+1, self.all_cadences[o][0].title()) for i, o in enumerate(all_cadences_keys))
             cadence = raw_input('Select cadence: ')
             try:
-                cadence = available_cadences[int(cadence) - 1]
+                cadence = self.all_cadences[all_cadences_keys[int(cadence) - 1]][0]
             except ValueError:
                 pass
 

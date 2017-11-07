@@ -14,3 +14,10 @@ class BaseInterval(object):
         Return true if the date provided is compatible for future intervals to be created properly.
         """
         return True
+
+    @staticmethod
+    def approximate_period():
+        """
+        Return the approximate number of days between each interval. Used for sorting purposes.
+        """
+        raise NotImplementedError
