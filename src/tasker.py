@@ -1,6 +1,8 @@
 from collections import namedtuple
 from datetime import date, timedelta
 
+from intervals.interval_factory import IntervalFactory, UnsupportedIntervalException
+
 
 TaskInstance = namedtuple('TaskInstance', ['id', 'task', 'date', 'done'])
 
@@ -80,16 +82,6 @@ class Tasker(object):
     """
     Class that manages recurring tasks in an SQLite3 database.
     """
-    class Cadence(object):
-        """
-        Pseudo-enum for supported cadences.
-        """
-        DAILY = 'daily'
-        WEEKLY = 'weekly'
-        MONTHLY = 'monthly'
-
-        ALL = (DAILY, WEEKLY, MONTHLY)
-
     def __init__(self, database):
         """
         :param database: The sqlite3 database connection for this instance.
@@ -127,15 +119,7 @@ class Tasker(object):
 
         date_components = last_date.split('-')
         recent_date = date(*(int(d) for d in date_components))
-        if cadence == Tasker.Cadence.DAILY:
-            return (recent_date + timedelta(days=1)).isoformat()
-        if cadence == Tasker.Cadence.WEEKLY:
-            return (recent_date + timedelta(days=7)).isoformat()
-        elif cadence == Tasker.Cadence.MONTHLY:
-            # No "month" timedelta :(
-            if recent_date.month == 12:
-                return (recent_date.replace(year=recent_date.year + 1, month=1)).isoformat()
-            return (recent_date.replace(month=recent_date.month + 1)).isoformat()
+        return IntervalFactory.get(cadence).next_interval(recent_date).isoformat()
 
     def assert_cadence_valid(self, cadence):
         """
@@ -143,7 +127,9 @@ class Tasker(object):
 
         :raises InvalidCadenceException: If the cadence is not present in the list of available/configured cadences.
         """
-        if cadence not in Tasker.Cadence.ALL:
+        try:
+            IntervalFactory.get(cadence)
+        except UnsupportedIntervalException:
             raise InvalidCadenceException('Cadence {} not available.')
 
     def assert_name_unique(self, name):
@@ -168,7 +154,7 @@ class Tasker(object):
 
         :raises InvalidStartDateException: When a start date and cadence could cause tasks to skip instances.
         """
-        if cadence == Tasker.Cadence.MONTHLY and start_date.day > 28:
+        if not IntervalFactory.get(cadence).is_compatible(start_date):
             raise InvalidStartDateException(
                 'Cadence {} and start date: {} could lose task instances.'.format(cadence, start_date)
             )

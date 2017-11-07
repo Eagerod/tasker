@@ -5,6 +5,7 @@ import sys
 from datetime import date
 
 from tasker import Tasker, InvalidStartDateException, DuplicateNameException, InvalidCadenceException
+from intervals.interval_factory import IntervalFactory, UnsupportedIntervalException
 
 
 class TaskerCli(object):
@@ -14,6 +15,18 @@ class TaskerCli(object):
 
         self.db = sqlite3.connect(database)
         self.tasker = Tasker(self.db)
+
+        # Attempt to load up all intervals from the intervals directory.
+        intervals_dir = os.path.realpath(os.path.join(os.path.dirname(__file__), 'intervals'))
+        for f in os.listdir(intervals_dir):
+            # Only take py files
+            if not f.endswith('.py') or f in ('__init__.py', 'base_interval.py', 'interval_factory.py'):
+                continue
+
+            try:
+                IntervalFactory.get(f.replace('.py', ''))
+            except UnsupportedIntervalException:
+                pass
 
     def create_task(self):
         name = self._get_task_name()
@@ -53,12 +66,13 @@ class TaskerCli(object):
                 print >> sys.stderr, e.message
 
     def _get_cadence(self):
+        available_cadences = IntervalFactory.known_intervals()
         while True:
             print 'Available cadences:'
-            print '\n'.join('  {}. {}'.format(i+1, o.title()) for i, o in enumerate(Tasker.Cadence.ALL))
+            print '\n'.join('  {}. {}'.format(i+1, o.title()) for i, o in enumerate(available_cadences))
             cadence = raw_input('Select cadence: ')
             try:
-                cadence = Tasker.Cadence.ALL[int(cadence) - 1]
+                cadence = available_cadences[int(cadence) - 1]
             except ValueError:
                 pass
 
