@@ -40,7 +40,3 @@ class IntervalFactory(object):
 
         cls._module_cache[interval_name] = module_contents[0][1]
         return cls._module_cache[interval_name]
-
-    @classmethod
-    def known_intervals(cls):
-        return cls._module_cache.keys()

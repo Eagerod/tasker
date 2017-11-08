@@ -1,3 +1,6 @@
+[run]
+source = src
+parallel = true
 [report]
 exclude_lines =
     raise NotImplementedError

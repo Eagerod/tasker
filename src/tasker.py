@@ -130,7 +130,7 @@ class Tasker(object):
         try:
             IntervalFactory.get(cadence)
         except UnsupportedIntervalException:
-            raise InvalidCadenceException('Cadence {} not available.')
+            raise InvalidCadenceException('Cadence {} not available.'.format(cadence))
 
     def assert_name_unique(self, name):
         """
@@ -146,7 +146,7 @@ class Tasker(object):
 
         for row in cursor:
             if row != (0,):
-                raise DuplicateNameException('Task "{}" already exists'.format(name))
+                raise DuplicateNameException('Task "{}" already exists.'.format(name))
 
     def assert_start_date_valid(self, cadence, start_date):
         """
