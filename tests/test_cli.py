@@ -1,7 +1,6 @@
 import os
 import sqlite3
 from subprocess import Popen, PIPE
-from StringIO import StringIO
 from unittest import TestCase
 
 
@@ -11,7 +10,7 @@ CLI_ENTER_START_DATE_STRING = 'When does this start (YYYY-MM-DD): '
 
 CLI_CADENCE_NOT_AVAILABLE_FORMAT = 'Cadence {} not available.\n'
 CLI_INAPPROPRATE_DATE_FORMAT = 'Cadence {} and start date: {} could lose task instances.\n'
-CLI_DUPLICATE_NAME_FORMAT= 'Task "{}" already exists.\n'
+CLI_DUPLICATE_NAME_FORMAT = 'Task "{}" already exists.\n'
 CLI_INVALID_DATE_FORMAT = 'Not a valid (YYYY-MM-DD) ({})\n'
 
 THINGS_TO_DO_STRING = 'Things to do:\n'
@@ -75,7 +74,9 @@ class CliTest(TestCase):
 
     def test_create_task_invalid_cadence(self):
         input_str = 'Do some things\nlol testing\ndaily\n2017-11-06\n'
-        output_str = '{}{}{}{}'.format(CLI_ENTER_TASK_NAME_STRING, CLI_ENTER_CADENCE_STRING, CLI_ENTER_CADENCE_STRING, CLI_ENTER_START_DATE_STRING)
+        output_str = '{}{}{}{}'.format(
+            CLI_ENTER_TASK_NAME_STRING, CLI_ENTER_CADENCE_STRING, CLI_ENTER_CADENCE_STRING, CLI_ENTER_START_DATE_STRING
+        )
         val = self._call_cli(['--create'], stdin=input_str)
         self.assertEqual(val, (0, output_str, CLI_CADENCE_NOT_AVAILABLE_FORMAT.format('lol testing')))
 
@@ -89,7 +90,12 @@ class CliTest(TestCase):
 
     def test_create_task_invalid_interval(self):
         input_str = 'Do some things\nmonthly\n2017-11-29\n2017-11-06'
-        output_str = '{}{}{}{}'.format(CLI_ENTER_TASK_NAME_STRING, CLI_ENTER_CADENCE_STRING, CLI_ENTER_START_DATE_STRING, CLI_ENTER_START_DATE_STRING)
+        output_str = '{}{}{}{}'.format(
+            CLI_ENTER_TASK_NAME_STRING,
+            CLI_ENTER_CADENCE_STRING,
+            CLI_ENTER_START_DATE_STRING,
+            CLI_ENTER_START_DATE_STRING
+        )
         val = self._call_cli(['--create'], stdin=input_str)
         self.assertEqual(val, (0, output_str, CLI_INAPPROPRATE_DATE_FORMAT.format('monthly', '2017-11-29')))
 
@@ -107,7 +113,12 @@ class CliTest(TestCase):
 
         input_str = 'Do some things\nDo some other things\ndaily\n2017-11-07\n'
         val = self._call_cli(['--create'], stdin=input_str)
-        output_str = '{}{}{}{}'.format(CLI_ENTER_TASK_NAME_STRING, CLI_ENTER_TASK_NAME_STRING, CLI_ENTER_CADENCE_STRING, CLI_ENTER_START_DATE_STRING)
+        output_str = '{}{}{}{}'.format(
+            CLI_ENTER_TASK_NAME_STRING,
+            CLI_ENTER_TASK_NAME_STRING,
+            CLI_ENTER_CADENCE_STRING,
+            CLI_ENTER_START_DATE_STRING
+        )
 
         self.assertEqual(val, (0, output_str, CLI_DUPLICATE_NAME_FORMAT.format('Do some things')))
 
@@ -117,11 +128,18 @@ class CliTest(TestCase):
         cursor.execute('SELECT name, cadence, start FROM tasks ORDER BY start')
         db.commit()
 
-        self.assertEqual(cursor.fetchall(), [('Do some things', 'daily', '2017-11-06'), ('Do some other things', 'daily', '2017-11-07')])
+        self.assertEqual(cursor.fetchall(), [
+            ('Do some things', 'daily', '2017-11-06'), ('Do some other things', 'daily', '2017-11-07')
+        ])
 
     def test_create_task_invalid_date(self):
         input_str = 'Do some things\ndaily\n2017-25-11\n2017-11-06\n'
-        output_str = '{}{}{}{}'.format(CLI_ENTER_TASK_NAME_STRING, CLI_ENTER_CADENCE_STRING, CLI_ENTER_START_DATE_STRING, CLI_ENTER_START_DATE_STRING)
+        output_str = '{}{}{}{}'.format(
+            CLI_ENTER_TASK_NAME_STRING,
+            CLI_ENTER_CADENCE_STRING,
+            CLI_ENTER_START_DATE_STRING,
+            CLI_ENTER_START_DATE_STRING
+        )
         val = self._call_cli(['--create'], stdin=input_str)
 
         self.assertEqual(val, (0, output_str, CLI_INVALID_DATE_FORMAT.format('month must be in 1..12')))
@@ -153,7 +171,6 @@ class CliTest(TestCase):
 
     def test_create_check_complete_task(self):
         input_str = 'Do some things\ndaily\n2017-11-06\n'
-        output_str = '{}{}{}'.format(CLI_ENTER_TASK_NAME_STRING, CLI_ENTER_CADENCE_STRING, CLI_ENTER_START_DATE_STRING)
         self._call_cli(['--create'], stdin=input_str)
         self._call_cli(['--check'])
 
@@ -166,5 +183,3 @@ class CliTest(TestCase):
         db.commit()
 
         self.assertEqual(cursor.fetchall(), [(1, '2017-11-06', 'true')])
-
-

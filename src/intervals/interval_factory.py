@@ -30,12 +30,16 @@ class IntervalFactory(object):
         except ImportError as e:
             raise UnsupportedIntervalException('Unknown interval: {} ({})'.format(interval_name, e.message))
 
-        module_contents = getmembers(module, lambda x: type(x) is type and issubclass(x, BaseInterval) and x != BaseInterval)
-        
+        module_contents = getmembers(
+            module, lambda x: type(x) is type and issubclass(x, BaseInterval) and x != BaseInterval
+        )
+
         if len(module_contents) != 1:
             import_path = os.path.abspath(os.path.join(os.path.dirname(__file__), interval_name))
             raise IntervalDefinitionException(
-                'Interval import from {} failed with incorrect number of intervals ({})'.format(import_path, module_contents)
+                'Interval import from {} failed with incorrect number of intervals ({})'.format(
+                    import_path, module_contents
+                )
             )
 
         cls._module_cache[interval_name] = module_contents[0][1]

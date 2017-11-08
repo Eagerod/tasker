@@ -71,10 +71,11 @@ class TaskerCli(object):
 
     def _get_cadence(self):
         all_cadences_keys = sorted(self.all_cadences.keys())
+        cadence_lst = ['  {}. {}'.format(i+1, self.all_cadences[o][0].title()) for i, o in enumerate(all_cadences_keys)]
 
         while True:
             print 'Available cadences:'
-            print '\n'.join('  {}. {}'.format(i+1, self.all_cadences[o][0].title()) for i, o in enumerate(all_cadences_keys))
+            print '\n'.join(cadence_lst)
             cadence = raw_input('Select cadence: ')
             try:
                 cadence = self.all_cadences[all_cadences_keys[int(cadence) - 1]][0]

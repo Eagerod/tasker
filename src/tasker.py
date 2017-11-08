@@ -1,5 +1,5 @@
 from collections import namedtuple
-from datetime import date, timedelta
+from datetime import date
 
 from intervals.interval_factory import IntervalFactory, UnsupportedIntervalException
 
