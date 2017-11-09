@@ -4,7 +4,7 @@ import setuptools
 setuptools.setup(
     name='tasker',
     license='MIT',
-    version='0.0.4',
+    version='0.0.5',
     description='manage recurring tasks on the command line.',
     author='Aleem Haji',
     author_email='hajial@gmail.com',
