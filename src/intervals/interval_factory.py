@@ -14,6 +14,13 @@ class IntervalDefinitionException(Exception):
 
 
 class IntervalFactory(object):
+    """
+    Factory + caching mechanism for loading up intervals from this directory.
+
+    NOTE: This is probably way over engineered, considering intervals only really wrap up a tiny amount of
+    functionality, but it'll allow for very easy extensions if there's ever a case where non-conventional intervals
+    need to be added to custom installations of tasker.
+    """
     _module_cache = {}
 
     @classmethod

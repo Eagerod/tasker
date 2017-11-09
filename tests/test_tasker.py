@@ -13,6 +13,7 @@ class TaskerTest(TestCase):
     def test_create_task(self):
         tasker = Tasker(self.db)
 
+        tasker.create_task('Fix bike', 'once', date(2016, 11, 2))
         tasker.create_task('Make coffee', 'daily', date(2016, 11, 3))
         tasker.create_task('Get gas', 'weekly', date(2016, 11, 5))
         tasker.create_task('Pay bills', 'monthly', date(2016, 11, 4))
@@ -24,9 +25,10 @@ class TaskerTest(TestCase):
         tasks = cursor.fetchall()
 
         self.assertEqual(tasks, [
-            (1, 'Make coffee', 'daily', '2016-11-03'),
-            (3, 'Pay bills', 'monthly', '2016-11-04'),
-            (2, 'Get gas', 'weekly', '2016-11-05')
+            (1, 'Fix bike', 'once', '2016-11-02'),
+            (2, 'Make coffee', 'daily', '2016-11-03'),
+            (4, 'Pay bills', 'monthly', '2016-11-04'),
+            (3, 'Get gas', 'weekly', '2016-11-05')
         ])
 
     def test_create_task_duplicate(self):
@@ -49,6 +51,7 @@ class TaskerTest(TestCase):
         tasker = Tasker(self.db)
 
         # All tasks should be scheduled
+        tasker.create_task('Fix bike', 'once', date(2016, 11, 2))
         tasker.create_task('Make coffee', 'daily', date(2016, 11, 3))
         tasker.create_task('Get gas', 'weekly', date(2016, 11, 5))
         tasker.create_task('Pay bills', 'monthly', date(2016, 11, 4))
@@ -62,9 +65,10 @@ class TaskerTest(TestCase):
         tis = cursor.fetchall()
 
         self.assertEqual(tis, [
-            (1, '2016-11-03', 'false'),
-            (3, '2016-11-04', 'false'),
-            (2, '2016-11-05', 'false')
+            (1, '2016-11-02', 'false'),
+            (2, '2016-11-03', 'false'),
+            (4, '2016-11-04', 'false'),
+            (3, '2016-11-05', 'false')
         ])
 
     def test_schedule_tasks_nothing_exists(self):
@@ -129,6 +133,7 @@ class TaskerTest(TestCase):
         tasker = Tasker(self.db)
 
         # All tasks should be scheduled
+        tasker.create_task('Fix bike', 'once', date(2016, 11, 2))
         tasker.create_task('Make coffee', 'daily', date(2016, 11, 3))
         tasker.create_task('Get gas', 'weekly', date(2016, 11, 5))
         tasker.create_task('Pay bills', 'monthly', date(2016, 11, 4))
@@ -137,6 +142,7 @@ class TaskerTest(TestCase):
         tasker.complete_task_instance(1)
         tasker.complete_task_instance(2)
         tasker.complete_task_instance(3)
+        tasker.complete_task_instance(4)
         tasker.schedule_tasks()
         tasker.schedule_tasks()
 
@@ -147,18 +153,18 @@ class TaskerTest(TestCase):
         tis = cursor.fetchall()
 
         self.assertEqual(tis, [
-            (1, '2016-11-03', 'true'),
-            (1, '2016-11-04', 'false'),
-            (3, '2016-11-04', 'true'),
-            (2, '2016-11-05', 'true'),
-            (2, '2016-11-12', 'false'),
-            (3, '2016-12-04', 'false')
+            (1, '2016-11-02', 'true'),
+            (2, '2016-11-03', 'true'),
+            (2, '2016-11-04', 'false'),
+            (4, '2016-11-04', 'true'),
+            (3, '2016-11-05', 'true'),
+            (3, '2016-11-12', 'false'),
+            (4, '2016-12-04', 'false')
         ])
 
     def test_complete_task_instance(self):
         tasker = Tasker(self.db)
 
-        # All tasks should be scheduled
         tasker.create_task('Make coffee', 'daily', date(2016, 11, 3))
 
         tasker.schedule_tasks()

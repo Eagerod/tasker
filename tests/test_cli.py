@@ -5,7 +5,7 @@ from unittest import TestCase
 
 
 CLI_ENTER_TASK_NAME_STRING = 'Enter task name: '
-CLI_ENTER_CADENCE_STRING = 'Available cadences:\n  1. Daily\n  2. Weekly\n  3. Monthly\nSelect cadence: '
+CLI_ENTER_CADENCE_STRING = 'Available cadences:\n  1. Once\n  2. Daily\n  3. Weekly\n  4. Monthly\nSelect cadence: '
 CLI_ENTER_START_DATE_STRING = 'When does this start (YYYY-MM-DD): '
 
 CLI_CADENCE_NOT_AVAILABLE_FORMAT = 'Cadence {} not available.\n'
