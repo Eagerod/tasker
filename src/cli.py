@@ -9,9 +9,10 @@ from intervals.interval_factory import IntervalFactory, UnsupportedIntervalExcep
 
 
 class TaskerCliOptions(object):
-    CREATE = 'create'
+    ATTACH = 'attach'
     CHECK = 'check'
     COMPLETE = 'complete'
+    CREATE = 'create'
 
 
 class TaskerCli(object):
@@ -19,6 +20,7 @@ class TaskerCli(object):
         if not database:
             database = os.path.join(os.path.expanduser('~'), '.tasker.sqlite')
 
+        self._db_path = database
         self.db = sqlite3.connect(database)
         self.tasker = Tasker(self.db)
 
@@ -65,6 +67,25 @@ class TaskerCli(object):
 
     def complete_task(self, ti_id):
         self.tasker.complete_task_instance(ti_id)
+
+    def attach_bash_profile(self):
+        command_length = len(sys.argv[0])
+        with open(os.path.join(os.path.expanduser('~'), '.bash_profile'), 'a+') as bash_profile_file:
+            bash_profile_file.seek(0)
+            file_lines = []
+            done = False
+            for line in bash_profile_file.readlines():
+                if (line.find('tasker', 0, 6) == 0 or line.find(sys.argv[0], 0, command_length) == 0):
+                    if done:
+                        continue
+
+                    file_lines.append('tasker --database "{}" {}\n'.format(self._db_path, TaskerCliOptions.CHECK))
+                    done = True
+                else:
+                    file_lines.append(line)
+            bash_profile_file.seek(0)
+            bash_profile_file.truncate()
+            bash_profile_file.writelines(file_lines)
 
     def _print_remaining_tasks(self):
         task_instances = self.tasker.get_incomplete_task_instances()
@@ -126,6 +147,9 @@ def do_program():
     complete_parser = subparsers.add_parser(TaskerCliOptions.COMPLETE, help='complete an existing task')
     complete_parser.add_argument('task_id', help='task ID to complete')
 
+    attach_parser = subparsers.add_parser(TaskerCliOptions.ATTACH, 
+                                          help='attach tasker to ~/.bash_profile to check on terminal start')
+
     args = parser.parse_args()
 
     tasker = TaskerCli(args.database)
@@ -136,6 +160,8 @@ def do_program():
         tasker.print_tasks()
     elif args.command == TaskerCliOptions.COMPLETE:
         tasker.complete_task(args.task_id)
+    elif args.command == TaskerCliOptions.ATTACH:
+        tasker.attach_bash_profile()
     else:  # pragma: no cover
         # Shouldn't actually be reachable, but a good failsafe in case commands are added to the list without actually
         # being implemented.
