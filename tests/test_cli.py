@@ -14,7 +14,7 @@ CLI_DUPLICATE_NAME_FORMAT = 'Task "{}" already exists.\n'
 CLI_INVALID_DATE_FORMAT = 'Not a valid (YYYY-MM-DD) ({})\n'
 
 THINGS_TO_DO_STRING = 'Things to do:\n'
-COMPLETE_TASK_FORMAT = 'To complete any task, use:\n    {} --complete N\n'
+COMPLETE_TASK_FORMAT = 'To complete any task, use:\n    {} complete N\n'
 
 
 class CliTest(TestCase):
@@ -51,17 +51,17 @@ class CliTest(TestCase):
     def test_usage_message(self):
         val = self._call_cli([])
         self.assertNotEqual(val[0], 0)
-        self.assertIn('usage:', val[1])
-        self.assertEqual(val[2], '')
+        self.assertEqual(val[1], '')
+        self.assertIn('usage:', val[2])
 
     def test_check_with_no_db_contents(self):
-        val = self._call_cli(['--check'])
+        val = self._call_cli(['check'])
         self.assertEqual(val, (0, '', ''))
 
     def test_create_task(self):
         input_str = 'Do some things\ndaily\n2017-11-06\n'
         output_str = '{}{}{}'.format(CLI_ENTER_TASK_NAME_STRING, CLI_ENTER_CADENCE_STRING, CLI_ENTER_START_DATE_STRING)
-        val = self._call_cli(['--create'], stdin=input_str)
+        val = self._call_cli(['create'], stdin=input_str)
         self.assertEqual(val, (0, output_str, ''))
 
         # Verify that it was created.
@@ -77,7 +77,7 @@ class CliTest(TestCase):
         output_str = '{}{}{}{}'.format(
             CLI_ENTER_TASK_NAME_STRING, CLI_ENTER_CADENCE_STRING, CLI_ENTER_CADENCE_STRING, CLI_ENTER_START_DATE_STRING
         )
-        val = self._call_cli(['--create'], stdin=input_str)
+        val = self._call_cli(['create'], stdin=input_str)
         self.assertEqual(val, (0, output_str, CLI_CADENCE_NOT_AVAILABLE_FORMAT.format('lol testing')))
 
         # Verify that it was created.
@@ -96,7 +96,7 @@ class CliTest(TestCase):
             CLI_ENTER_START_DATE_STRING,
             CLI_ENTER_START_DATE_STRING
         )
-        val = self._call_cli(['--create'], stdin=input_str)
+        val = self._call_cli(['create'], stdin=input_str)
         self.assertEqual(val, (0, output_str, CLI_INAPPROPRATE_DATE_FORMAT.format('monthly', '2017-11-29')))
 
         # Verify that it was created.
@@ -109,10 +109,10 @@ class CliTest(TestCase):
 
     def test_create_task_duplicate_name(self):
         input_str = 'Do some things\ndaily\n2017-11-06\n'
-        val = self._call_cli(['--create'], stdin=input_str)
+        val = self._call_cli(['create'], stdin=input_str)
 
         input_str = 'Do some things\nDo some other things\ndaily\n2017-11-07\n'
-        val = self._call_cli(['--create'], stdin=input_str)
+        val = self._call_cli(['create'], stdin=input_str)
         output_str = '{}{}{}{}'.format(
             CLI_ENTER_TASK_NAME_STRING,
             CLI_ENTER_TASK_NAME_STRING,
@@ -140,7 +140,7 @@ class CliTest(TestCase):
             CLI_ENTER_START_DATE_STRING,
             CLI_ENTER_START_DATE_STRING
         )
-        val = self._call_cli(['--create'], stdin=input_str)
+        val = self._call_cli(['create'], stdin=input_str)
 
         self.assertEqual(val, (0, output_str, CLI_INVALID_DATE_FORMAT.format('month must be in 1..12')))
 
@@ -155,9 +155,9 @@ class CliTest(TestCase):
     def test_create_check_task(self):
         input_str = 'Do some things\ndaily\n2017-11-06\n'
         output_str = '{}{}{}'.format(CLI_ENTER_TASK_NAME_STRING, CLI_ENTER_CADENCE_STRING, CLI_ENTER_START_DATE_STRING)
-        self._call_cli(['--create'], stdin=input_str)
+        self._call_cli(['create'], stdin=input_str)
 
-        val = self._call_cli(['--check'])
+        val = self._call_cli(['check'])
 
         output_str = '{}      1. (2017-11-06) Do some things\n{}'.format(THINGS_TO_DO_STRING, self.complete_task_string)
         self.assertEqual(val, (0, output_str, ''))
@@ -171,10 +171,10 @@ class CliTest(TestCase):
 
     def test_create_check_complete_task(self):
         input_str = 'Do some things\ndaily\n2017-11-06\n'
-        self._call_cli(['--create'], stdin=input_str)
-        self._call_cli(['--check'])
+        self._call_cli(['create'], stdin=input_str)
+        self._call_cli(['check'])
 
-        val = self._call_cli(['--complete', '1'])
+        val = self._call_cli(['complete', '1'])
         self.assertEqual(val, (0, '', ''))
 
         db = sqlite3.connect(self.db_path)

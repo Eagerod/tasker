@@ -8,6 +8,12 @@ from tasker import Tasker, InvalidStartDateException, DuplicateNameException, In
 from intervals.interval_factory import IntervalFactory, UnsupportedIntervalException
 
 
+class TaskerCliOptions(object):
+    CREATE = 'create'
+    CHECK = 'check'
+    COMPLETE = 'complete'
+
+
 class TaskerCli(object):
     def __init__(self, database=None):
         if not database:
@@ -58,7 +64,7 @@ class TaskerCli(object):
             print 'Things to do:'
             for row in task_instances:
                 print '  {}. ({}) {}'.format(str(row.id).rjust(5), row.date, row.task)
-            print 'To complete any task, use:\n    {} --complete N'.format(sys.argv[0])
+            print 'To complete any task, use:\n    {} complete N'.format(sys.argv[0])
 
     def _get_task_name(self):
         while True:
@@ -100,26 +106,32 @@ class TaskerCli(object):
 
 def do_program():
     parser = argparse.ArgumentParser(description='Pretty basic interval task management system')
-    command_group = parser.add_mutually_exclusive_group()
 
-    parser.add_argument('--database', '-d', help='path to database file, if default not desired')
+    parser.add_argument('--database', '-d', help='path to database file, defaults to ~/.tasker.sqlite')
 
-    command_group.add_argument('--create', action='store_true', help='starts an interactive task creation')
-    command_group.add_argument('--check', action='store_true', help='prints any tasks that are unfinished and exits')
-    command_group.add_argument('--complete', dest='task_id', help='complete an existing task')
+    subparsers = parser.add_subparsers(dest='command', help='sub-commands')
+
+    create_parser = subparsers.add_parser(TaskerCliOptions.CREATE, help='create a task')
+
+    check_parser = subparsers.add_parser(TaskerCliOptions.CHECK, help='print pending/incomplete tasks')
+    
+    complete_parser = subparsers.add_parser(TaskerCliOptions.COMPLETE, help='complete an existing task')
+    complete_parser.add_argument('task_id', help='task ID to complete')
 
     args = parser.parse_args()
 
     tasker = TaskerCli(args.database)
 
-    if args.create:
+    if args.command == TaskerCliOptions.CREATE:
         tasker.create_task()
-    elif args.check:
+    elif args.command == TaskerCliOptions.CHECK:
         tasker.print_tasks()
-    elif args.task_id:
+    elif args.command == TaskerCliOptions.COMPLETE:
         tasker.complete_task(args.task_id)
-    else:
-        parser.print_usage()
+    else:  # pragma: no cover
+        # Shouldn't actually be reachable, but a good failsafe in case commands are added to the list without actually
+        # being implemented.
+        parser.print_usage(sys.stderr)
         sys.exit(-1)
 
 
