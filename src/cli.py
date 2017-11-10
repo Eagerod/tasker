@@ -22,6 +22,14 @@ class TaskerCli(object):
         self.db = sqlite3.connect(database)
         self.tasker = Tasker(self.db)
 
+        self._run_path = sys.argv[0]
+        # Scan through $PATH, and determine if this could be run without the full path.
+        for a_path in os.environ['PATH'].split(os.pathsep):
+            if a_path[-1] != os.path.sep:
+                a_path = a_path + os.path.sep
+            if self._run_path.find(a_path, 0, len(a_path)) == 0:
+                self._run_path = self._run_path[len(a_path):]
+
         # Attempt to load up all intervals from the intervals directory.
         self.all_cadences = {}
         intervals_dir = os.path.realpath(os.path.join(os.path.dirname(__file__), 'intervals'))
@@ -64,7 +72,7 @@ class TaskerCli(object):
             print 'Things to do:'
             for row in task_instances:
                 print '  {}. ({}) {}'.format(str(row.id).rjust(5), row.date, row.task)
-            print 'To complete any task, use:\n    {} complete N'.format(sys.argv[0])
+            print 'To complete any task, use:\n    {} complete N'.format(self._run_path)
 
     def _get_task_name(self):
         while True:
