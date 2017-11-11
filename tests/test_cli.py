@@ -76,7 +76,11 @@ class CliTest(TestCase):
     def test_create_task_missing_params(self):
         input_str = 'Do some things\ndaily\n'
         # Extra \n added by final except statement.
-        output_str = '{}{}{}\n'.format(CLI_ENTER_TASK_NAME_STRING, CLI_ENTER_CADENCE_STRING, CLI_ENTER_START_DATE_STRING)
+        output_str = '{}{}{}\n'.format(
+            CLI_ENTER_TASK_NAME_STRING,
+            CLI_ENTER_CADENCE_STRING,
+            CLI_ENTER_START_DATE_STRING
+        )
         val = self._call_cli(['create'], stdin=input_str)
         self.assertEqual(val, (255, output_str, ''))
 

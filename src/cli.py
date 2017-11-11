@@ -129,10 +129,9 @@ def do_program():
 
     subparsers = parser.add_subparsers(dest='command', help='sub-commands')
 
-    create_parser = subparsers.add_parser(TaskerCliOptions.CREATE, help='create a task')
+    subparsers.add_parser(TaskerCliOptions.CREATE, help='create a task')
+    subparsers.add_parser(TaskerCliOptions.CHECK, help='print pending/incomplete tasks')
 
-    check_parser = subparsers.add_parser(TaskerCliOptions.CHECK, help='print pending/incomplete tasks')
-    
     complete_parser = subparsers.add_parser(TaskerCliOptions.COMPLETE, help='complete an existing task')
     complete_parser.add_argument('task_id', help='task ID to complete')
 
