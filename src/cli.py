@@ -76,7 +76,11 @@ class TaskerCli(object):
 
     def _get_task_name(self):
         while True:
-            name = raw_input('Enter task name: ')
+            name = raw_input('Enter task name: ').strip()
+
+            if not name:
+                continue
+
             try:
                 self.tasker.assert_name_unique(name)
                 return name
@@ -90,7 +94,11 @@ class TaskerCli(object):
         while True:
             print 'Available cadences:'
             print '\n'.join(cadence_lst)
-            cadence = raw_input('Select cadence: ')
+            cadence = raw_input('Select cadence: ').strip()
+
+            if not cadence:
+                continue
+
             try:
                 cadence = self.all_cadences[all_cadences_keys[int(cadence) - 1]][0]
             except ValueError:
@@ -105,7 +113,7 @@ class TaskerCli(object):
 
     def _get_first_date(self):
         while True:
-            start = raw_input('When does this start (YYYY-MM-DD; default today): ')
+            start = raw_input('When does this start (YYYY-MM-DD; default today): ').strip()
             try:
                 if start == '':
                     return date.today()

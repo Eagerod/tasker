@@ -118,6 +118,22 @@ class CliTest(TestCase):
 
         self.assertEqual(cursor.fetchall(), [('Do some things', 'daily', '2017-11-06')])
 
+    def test_create_task_missing_cadence(self):
+        input_str = 'Do some things\n \ndaily\n2017-11-06\n'
+        output_str = '{}{}{}{}'.format(
+            CLI_ENTER_TASK_NAME_STRING, CLI_ENTER_CADENCE_STRING, CLI_ENTER_CADENCE_STRING, CLI_ENTER_START_DATE_STRING
+        )
+        val = self._call_cli(['create'], stdin=input_str)
+        self.assertEqual(val, (0, output_str, ''))
+
+        # Verify that it was created.
+        db = sqlite3.connect(self.db_path)
+        cursor = db.cursor()
+        cursor.execute('SELECT name, cadence, start FROM tasks')
+        db.commit()
+
+        self.assertEqual(cursor.fetchall(), [('Do some things', 'daily', '2017-11-06')])
+
     def test_create_task_invalid_interval(self):
         input_str = 'Do some things\nmonthly\n2017-11-29\n2017-11-06'
         output_str = '{}{}{}{}'.format(
@@ -161,6 +177,27 @@ class CliTest(TestCase):
         self.assertEqual(cursor.fetchall(), [
             ('Do some things', 'daily', '2017-11-06'), ('Do some other things', 'daily', '2017-11-07')
         ])
+
+    def test_create_task_missing_name(self):
+        input_str = ' \nDo some things\ndaily\n2017-11-06\n'
+        val = self._call_cli(['create'], stdin=input_str)
+
+        output_str = '{}{}{}{}'.format(
+            CLI_ENTER_TASK_NAME_STRING,
+            CLI_ENTER_TASK_NAME_STRING,
+            CLI_ENTER_CADENCE_STRING,
+            CLI_ENTER_START_DATE_STRING
+        )
+
+        self.assertEqual(val, (0, output_str, ''))
+
+        # Verify that it was created.
+        db = sqlite3.connect(self.db_path)
+        cursor = db.cursor()
+        cursor.execute('SELECT name, cadence, start FROM tasks ORDER BY start')
+        db.commit()
+
+        self.assertEqual(cursor.fetchall(), [('Do some things', 'daily', '2017-11-06')])
 
     def test_create_task_invalid_date(self):
         input_str = 'Do some things\ndaily\n2017-25-11\n2017-11-06\n'
