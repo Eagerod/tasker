@@ -133,7 +133,11 @@ def do_program():
     tasker = TaskerCli(args.database)
 
     if args.command == TaskerCliOptions.CREATE:
-        tasker.create_task()
+        try:
+            tasker.create_task()
+        except (KeyboardInterrupt, EOFError):
+            print ''
+            sys.exit(-1)
     elif args.command == TaskerCliOptions.CHECK:
         tasker.print_tasks()
     elif args.command == TaskerCliOptions.COMPLETE:
