@@ -72,7 +72,7 @@ class TaskerCli(object):
             print 'Things to do:'
             for row in task_instances:
                 print '  {}. ({}) {}'.format(str(row.id).rjust(5), row.date, row.task)
-            print 'To complete any task, use:\n    {} {} N'.format(self._run_path, TaskerCliOptions.COMPELTE)
+            print 'To complete any task, use:\n    {} {} N'.format(self._run_path, TaskerCliOptions.COMPLETE)
 
     def _get_task_name(self):
         while True:
