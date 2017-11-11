@@ -105,8 +105,10 @@ class TaskerCli(object):
 
     def _get_first_date(self):
         while True:
-            start = raw_input('When does this start (YYYY-MM-DD): ')
+            start = raw_input('When does this start (YYYY-MM-DD; default today): ')
             try:
+                if start == '':
+                    return date.today()
                 return date(*[int(i) for i in start.split('-')])
             except (TypeError, ValueError) as e:
                 print >> sys.stderr, 'Not a valid (YYYY-MM-DD) ({})'.format(e.message)

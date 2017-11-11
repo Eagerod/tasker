@@ -1,12 +1,13 @@
 import os
 import sqlite3
+from datetime import date
 from subprocess import Popen, PIPE
 from unittest import TestCase
 
 
 CLI_ENTER_TASK_NAME_STRING = 'Enter task name: '
 CLI_ENTER_CADENCE_STRING = 'Available cadences:\n  1. Once\n  2. Daily\n  3. Weekly\n  4. Monthly\nSelect cadence: '
-CLI_ENTER_START_DATE_STRING = 'When does this start (YYYY-MM-DD): '
+CLI_ENTER_START_DATE_STRING = 'When does this start (YYYY-MM-DD; default today): '
 
 CLI_CADENCE_NOT_AVAILABLE_FORMAT = 'Cadence {} not available.\n'
 CLI_INAPPROPRATE_DATE_FORMAT = 'Cadence {} and start date: {} could lose task instances.\n'
@@ -71,6 +72,20 @@ class CliTest(TestCase):
         db.commit()
 
         self.assertEqual(cursor.fetchall(), [('Do some things', 'daily', '2017-11-06')])
+
+    def test_create_task_assume_today(self):
+        input_str = 'Do some things\ndaily\n\n'
+        output_str = '{}{}{}'.format(CLI_ENTER_TASK_NAME_STRING, CLI_ENTER_CADENCE_STRING, CLI_ENTER_START_DATE_STRING)
+        val = self._call_cli(['create'], stdin=input_str)
+        self.assertEqual(val, (0, output_str, ''))
+
+        # Verify that it was created.
+        db = sqlite3.connect(self.db_path)
+        cursor = db.cursor()
+        cursor.execute('SELECT name, cadence, start FROM tasks')
+        db.commit()
+
+        self.assertEqual(cursor.fetchall(), [('Do some things', 'daily', str(date.today()))])
 
     def test_create_task_invalid_cadence(self):
         input_str = 'Do some things\nlol testing\ndaily\n2017-11-06\n'
