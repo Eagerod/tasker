@@ -24,11 +24,17 @@ class TaskerCli(object):
 
         self._run_path = sys.argv[0]
         # Scan through $PATH, and determine if this could be run without the full path.
+        run_directory = os.path.dirname(sys.argv[0])
+        if run_directory[-1] != os.path.sep:
+            run_directory = run_directory + os.path.sep
+        len_run_directory = len(run_directory)
+
         for a_path in os.environ['PATH'].split(os.pathsep):
             if a_path[-1] != os.path.sep:
                 a_path = a_path + os.path.sep
-            if self._run_path.find(a_path, 0, len(a_path)) == 0:
-                self._run_path = self._run_path[len(a_path):]
+            if a_path == run_directory:
+                self._run_path = self._run_path[len_run_directory:]
+                break
 
         # Attempt to load up all intervals from the intervals directory.
         self.all_cadences = {}
@@ -114,9 +120,11 @@ class TaskerCli(object):
     def _get_first_date(self):
         while True:
             start = raw_input('When does this start (YYYY-MM-DD; default today): ').strip()
+
+            if start == '':
+                return date.today()
+
             try:
-                if start == '':
-                    return date.today()
                 return date(*[int(i) for i in start.split('-')])
             except (TypeError, ValueError) as e:
                 print >> sys.stderr, 'Not a valid (YYYY-MM-DD) ({})'.format(e.message)
