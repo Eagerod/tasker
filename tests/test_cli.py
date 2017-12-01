@@ -21,6 +21,7 @@ COMPLETE_TASK_FORMAT = 'To complete any task, use:\n    {} complete N\n'
 class CliTest(TestCase):
     @classmethod
     def setUpClass(cls):
+        super(CliTest, cls).setUpClass()
         cls.test_root_dir = os.path.dirname(os.path.realpath(__file__))
         cls.root_dir = os.path.dirname(cls.test_root_dir)
 
