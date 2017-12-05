@@ -200,12 +200,13 @@ class Tasker(object):
             #    - The most recent ti is done. (Check date and maybe create a new one)
             #    - The most recent ti is not done. (Leave it)
             #    - There has never been a ti. (Make one)
-            next_date = self._get_next_date(row[2], row[3], row[4])
-            if next_date == row[4] or next_date > until_date_str:
+            t_id, name, cadence, start, last_date, done = row
+            next_date = self._get_next_date(cadence, start, last_date)
+            if next_date == last_date or next_date > until_date_str:
                 continue
 
-            if next_date <= until_date_str and row[5] != 'false':
-                insert_statements.append((row[0], next_date))
+            if next_date <= until_date_str and done != 'false':
+                insert_statements.append((t_id, next_date))
 
         cursor = self.db.cursor()
         cursor.executemany(Queries.INSERT_TI, insert_statements)
