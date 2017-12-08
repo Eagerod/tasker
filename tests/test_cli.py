@@ -42,7 +42,7 @@ class CliTest(TestCase):
 
     @classmethod
     def _connect_db(cls):
-        return sqlite3.connect(cls.db_path)
+        return sqlite3.connect(cls.db_path, detect_types=sqlite3.PARSE_DECLTYPES)
 
     def _call_cli(self, cli_args, stdin=None):
         full_command = ['python', self.cli_path, '--database', self.db_path] + cli_args
@@ -76,7 +76,7 @@ class CliTest(TestCase):
         cursor.execute('SELECT name, cadence, start FROM tasks')
         db.commit()
 
-        self.assertEqual(cursor.fetchall(), [('Do some things', 'daily', '2017-11-06')])
+        self.assertEqual(cursor.fetchall(), [('Do some things', 'daily', date(2017, 11, 6))])
 
     def test_create_task_missing_params(self):
         input_str = 'Do some things\ndaily\n'
@@ -109,7 +109,7 @@ class CliTest(TestCase):
         cursor.execute('SELECT name, cadence, start FROM tasks')
         db.commit()
 
-        self.assertEqual(cursor.fetchall(), [('Do some things', 'daily', str(date.today()))])
+        self.assertEqual(cursor.fetchall(), [('Do some things', 'daily', date.today())])
 
     def test_create_task_invalid_cadence(self):
         input_str = 'Do some things\nlol testing\ndaily\n2017-11-06\n'
@@ -125,7 +125,7 @@ class CliTest(TestCase):
         cursor.execute('SELECT name, cadence, start FROM tasks')
         db.commit()
 
-        self.assertEqual(cursor.fetchall(), [('Do some things', 'daily', '2017-11-06')])
+        self.assertEqual(cursor.fetchall(), [('Do some things', 'daily', date(2017, 11, 6))])
 
     def test_create_task_missing_cadence(self):
         input_str = 'Do some things\n \ndaily\n2017-11-06\n'
@@ -141,7 +141,7 @@ class CliTest(TestCase):
         cursor.execute('SELECT name, cadence, start FROM tasks')
         db.commit()
 
-        self.assertEqual(cursor.fetchall(), [('Do some things', 'daily', '2017-11-06')])
+        self.assertEqual(cursor.fetchall(), [('Do some things', 'daily', date(2017, 11, 6))])
 
     def test_create_task_invalid_interval(self):
         input_str = 'Do some things\nmonthly\n2017-11-29\n2017-11-06'
@@ -152,7 +152,7 @@ class CliTest(TestCase):
             CLI_ENTER_START_DATE_STRING
         )
         val = self._call_cli(['create'], stdin=input_str)
-        self.assertEqual(val, (0, output_str, CLI_INAPPROPRATE_DATE_FORMAT.format('monthly', '2017-11-29')))
+        self.assertEqual(val, (0, output_str, CLI_INAPPROPRATE_DATE_FORMAT.format('monthly', date(2017, 11, 29))))
 
         # Verify that it was created.
         db = self._connect_db()
@@ -160,7 +160,7 @@ class CliTest(TestCase):
         cursor.execute('SELECT name, cadence, start FROM tasks')
         db.commit()
 
-        self.assertEqual(cursor.fetchall(), [('Do some things', 'monthly', '2017-11-06')])
+        self.assertEqual(cursor.fetchall(), [('Do some things', 'monthly', date(2017, 11, 6))])
 
     def test_create_task_duplicate_name(self):
         input_str = 'Do some things\ndaily\n2017-11-06\n'
@@ -184,7 +184,8 @@ class CliTest(TestCase):
         db.commit()
 
         self.assertEqual(cursor.fetchall(), [
-            ('Do some things', 'daily', '2017-11-06'), ('Do some other things', 'daily', '2017-11-07')
+            ('Do some things', 'daily', date(2017, 11, 6)),
+            ('Do some other things', 'daily', date(2017, 11, 7))
         ])
 
     def test_create_task_missing_name(self):
@@ -206,7 +207,7 @@ class CliTest(TestCase):
         cursor.execute('SELECT name, cadence, start FROM tasks ORDER BY start')
         db.commit()
 
-        self.assertEqual(cursor.fetchall(), [('Do some things', 'daily', '2017-11-06')])
+        self.assertEqual(cursor.fetchall(), [('Do some things', 'daily', date(2017, 11, 6))])
 
     def test_create_task_invalid_date(self):
         input_str = 'Do some things\ndaily\n2017-25-11\n2017-11-06\n'
@@ -226,7 +227,7 @@ class CliTest(TestCase):
         cursor.execute('SELECT name, cadence, start FROM tasks ORDER BY start')
         db.commit()
 
-        self.assertEqual(cursor.fetchall(), [('Do some things', 'daily', '2017-11-06')])
+        self.assertEqual(cursor.fetchall(), [('Do some things', 'daily', date(2017, 11, 6))])
 
     def test_create_check_task(self):
         input_str = 'Do some things\ndaily\n2017-11-06\n'
@@ -243,7 +244,7 @@ class CliTest(TestCase):
         cursor.execute('SELECT task, date, done FROM tis')
         db.commit()
 
-        self.assertEqual(cursor.fetchall(), [(1, '2017-11-06', 'false')])
+        self.assertEqual(cursor.fetchall(), [(1, date(2017, 11, 6), 'false')])
 
     def test_create_check_complete_task(self):
         input_str = 'Do some things\ndaily\n2017-11-06\n'
@@ -258,4 +259,4 @@ class CliTest(TestCase):
         cursor.execute('SELECT task, date, done FROM tis')
         db.commit()
 
-        self.assertEqual(cursor.fetchall(), [(1, '2017-11-06', 'true')])
+        self.assertEqual(cursor.fetchall(), [(1, date(2017, 11, 6), 'true')])
