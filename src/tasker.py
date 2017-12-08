@@ -117,9 +117,7 @@ class Tasker(object):
         if not last_date:
             return start_date
 
-        date_components = last_date.split('-')
-        recent_date = date(*(int(d) for d in date_components))
-        return IntervalFactory.get(cadence).next_interval(recent_date).isoformat()
+        return IntervalFactory.get(cadence).next_interval(last_date)
 
     def assert_cadence_valid(self, cadence):
         """
@@ -191,7 +189,6 @@ class Tasker(object):
         if not until_date:
             until_date = date.today()
 
-        until_date_str = until_date.strftime('%Y-%m-%d')
         insert_statements = []
 
         # This could probably be cleaned up a lot, likely by fixing the query, more than anything.
@@ -202,10 +199,10 @@ class Tasker(object):
             #    - There has never been a ti. (Make one)
             t_id, name, cadence, start, last_date, done = row
             next_date = self._get_next_date(cadence, start, last_date)
-            if next_date == last_date or next_date > until_date_str:
+            if next_date == last_date or next_date > until_date:
                 continue
 
-            if next_date <= until_date_str and done != 'false':
+            if next_date <= until_date and done != 'false':
                 insert_statements.append((t_id, next_date))
 
         cursor = self.db.cursor()

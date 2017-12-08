@@ -19,7 +19,7 @@ class TaskerCli(object):
         if not database:
             database = os.path.join(os.path.expanduser('~'), '.tasker.sqlite')
 
-        self.db = sqlite3.connect(database)
+        self.db = sqlite3.connect(database, detect_types=sqlite3.PARSE_DECLTYPES)
         self.tasker = Tasker(self.db)
 
         self._run_path = sys.argv[0]

@@ -8,7 +8,7 @@ from src.tasker import Tasker, DuplicateNameException, InvalidStartDateException
 class TaskerTest(TestCase):
     def setUp(self):
         super(TaskerTest, self).setUp()
-        self.db = sqlite3.connect(":memory:")
+        self.db = sqlite3.connect(":memory:", detect_types=sqlite3.PARSE_DECLTYPES)
 
     def test_create_task(self):
         tasker = Tasker(self.db)
@@ -25,10 +25,10 @@ class TaskerTest(TestCase):
         tasks = cursor.fetchall()
 
         self.assertEqual(tasks, [
-            (1, 'Fix bike', 'once', '2016-11-02'),
-            (2, 'Make coffee', 'daily', '2016-11-03'),
-            (4, 'Pay bills', 'monthly', '2016-11-04'),
-            (3, 'Get gas', 'weekly', '2016-11-05')
+            (1, 'Fix bike', 'once', date(2016, 11, 2)),
+            (2, 'Make coffee', 'daily', date(2016, 11, 3)),
+            (4, 'Pay bills', 'monthly', date(2016, 11, 4)),
+            (3, 'Get gas', 'weekly', date(2016, 11, 5))
         ])
 
     def test_create_task_duplicate(self):
@@ -65,10 +65,10 @@ class TaskerTest(TestCase):
         tis = cursor.fetchall()
 
         self.assertEqual(tis, [
-            (1, '2016-11-02', 'false'),
-            (2, '2016-11-03', 'false'),
-            (4, '2016-11-04', 'false'),
-            (3, '2016-11-05', 'false')
+            (1, date(2016, 11, 2), 'false'),
+            (2, date(2016, 11, 3), 'false'),
+            (4, date(2016, 11, 4), 'false'),
+            (3, date(2016, 11, 5), 'false')
         ])
 
     def test_schedule_tasks_nothing_exists(self):
@@ -101,8 +101,8 @@ class TaskerTest(TestCase):
         tis = cursor.fetchall()
 
         self.assertEqual(tis, [
-            (1, '2016-12-04', 'true'),
-            (1, '2017-01-04', 'false')
+            (1, date(2016, 12, 4), 'true'),
+            (1, date(2017, 1, 4), 'false')
         ])
 
     def test_schedule_tasks_repeated(self):
@@ -124,9 +124,9 @@ class TaskerTest(TestCase):
         tis = cursor.fetchall()
 
         self.assertEqual(tis, [
-            (1, '2016-11-03', 'false'),
-            (3, '2016-11-04', 'false'),
-            (2, '2016-11-05', 'false')
+            (1, date(2016, 11, 3), 'false'),
+            (3, date(2016, 11, 4), 'false'),
+            (2, date(2016, 11, 5), 'false')
         ])
 
     def test_schedule_tasks_repeated_tasks_done(self):
@@ -153,13 +153,13 @@ class TaskerTest(TestCase):
         tis = cursor.fetchall()
 
         self.assertEqual(tis, [
-            (1, '2016-11-02', 'true'),
-            (2, '2016-11-03', 'true'),
-            (2, '2016-11-04', 'false'),
-            (4, '2016-11-04', 'true'),
-            (3, '2016-11-05', 'true'),
-            (3, '2016-11-12', 'false'),
-            (4, '2016-12-04', 'false')
+            (1, date(2016, 11, 2), 'true'),
+            (2, date(2016, 11, 3), 'true'),
+            (2, date(2016, 11, 4), 'false'),
+            (4, date(2016, 11, 4), 'true'),
+            (3, date(2016, 11, 5), 'true'),
+            (3, date(2016, 11, 12), 'false'),
+            (4, date(2016, 12, 4), 'false')
         ])
 
     def test_complete_task_instance(self):
@@ -177,7 +177,7 @@ class TaskerTest(TestCase):
         tis = cursor.fetchall()
 
         self.assertEqual(tis, [
-            (1, '2016-11-03', 'true')
+            (1, date(2016, 11, 3), 'true')
         ])
 
     def test_get_incomplete_task_instances(self):
@@ -193,9 +193,9 @@ class TaskerTest(TestCase):
         tis = tasker.get_incomplete_task_instances()
 
         self.assertEqual(tis, [
-            TaskInstance(1, 'Make coffee', '2016-11-03', 'false'),
-            TaskInstance(3, 'Pay bills', '2016-11-04', 'false'),
-            TaskInstance(2, 'Get gas', '2016-11-05', 'false')
+            TaskInstance(1, 'Make coffee', date(2016, 11, 3), 'false'),
+            TaskInstance(3, 'Pay bills', date(2016, 11, 4), 'false'),
+            TaskInstance(2, 'Get gas', date(2016, 11, 5), 'false')
         ])
 
     def test_tasker_full_scenario(self):
@@ -221,12 +221,12 @@ class TaskerTest(TestCase):
         tis = cursor.fetchall()
 
         self.assertEqual(tis, [
-            (1, '2016-11-03', 'true'),
-            (1, '2016-11-04', 'false'),
-            (3, '2016-11-04', 'true'),
-            (2, '2016-11-05', 'true'),
-            (2, '2016-11-12', 'false'),
-            (3, '2016-12-04', 'false')
+            (1, date(2016, 11, 3), 'true'),
+            (1, date(2016, 11, 4), 'false'),
+            (3, date(2016, 11, 4), 'true'),
+            (2, date(2016, 11, 5), 'true'),
+            (2, date(2016, 11, 12), 'false'),
+            (3, date(2016, 12, 4), 'false')
         ])
 
     def test_tasker_full_scenario_schedule_complete(self):
@@ -249,6 +249,6 @@ class TaskerTest(TestCase):
         tis = cursor.fetchall()
 
         self.assertEqual(tis, [
-            (2, '2016-11-04', 'true'),
-            (1, '2016-11-05', 'true')
+            (2, date(2016, 11, 4), 'true'),
+            (1, date(2016, 11, 5), 'true')
         ])
