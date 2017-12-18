@@ -19,6 +19,9 @@ class TaskerCli(object):
         if not database:
             database = os.path.join(os.path.expanduser('~'), '.tasker.sqlite')
 
+        sqlite3.register_adapter(bool, int)
+        sqlite3.register_converter("BOOLEAN", lambda v: bool(int(v)))
+
         self.db = sqlite3.connect(database, detect_types=sqlite3.PARSE_DECLTYPES)
         self.tasker = Tasker(self.db)
 

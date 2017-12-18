@@ -42,6 +42,9 @@ class CliTest(TestCase):
 
     @classmethod
     def _connect_db(cls):
+        sqlite3.register_adapter(bool, int)
+        sqlite3.register_converter("BOOLEAN", lambda v: bool(int(v)))
+
         return sqlite3.connect(cls.db_path, detect_types=sqlite3.PARSE_DECLTYPES)
 
     def _call_cli(self, cli_args, stdin=None):
@@ -244,7 +247,7 @@ class CliTest(TestCase):
         cursor.execute('SELECT task, date, done FROM tis')
         db.commit()
 
-        self.assertEqual(cursor.fetchall(), [(1, date(2017, 11, 6), 'false')])
+        self.assertEqual(cursor.fetchall(), [(1, date(2017, 11, 6), False)])
 
     def test_create_check_complete_task(self):
         input_str = 'Do some things\ndaily\n2017-11-06\n'
@@ -259,4 +262,4 @@ class CliTest(TestCase):
         cursor.execute('SELECT task, date, done FROM tis')
         db.commit()
 
-        self.assertEqual(cursor.fetchall(), [(1, date(2017, 11, 6), 'true')])
+        self.assertEqual(cursor.fetchall(), [(1, date(2017, 11, 6), True)])

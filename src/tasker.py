@@ -37,7 +37,7 @@ class Queries(object):
             id INTEGER PRIMARY KEY,
             task INT,
             date DATE,
-            done BOOLEAN DEFAULT false
+            done BOOLEAN DEFAULT 0
         );
     '''
     CREATE_LATEST_TIS_VIEW = '''
@@ -64,7 +64,7 @@ class Queries(object):
         SELECT ti.id, t.name, ti.date
         FROM tasks t
         JOIN tis ti ON ti.task = t.id
-        WHERE ti.done = "false"
+        WHERE ti.done = 0
         ORDER BY ti.date;
     '''
     INSERT_TASK = '''
@@ -74,7 +74,7 @@ class Queries(object):
         INSERT INTO tis (task, date) VALUES (?,?);
     '''
     UPDATE_TI_DONE = '''
-        UPDATE tis SET done = "true" WHERE id = ?
+        UPDATE tis SET done = 1 WHERE id = ?
     '''
 
 
@@ -202,7 +202,7 @@ class Tasker(object):
             if next_date == last_date or next_date > until_date:
                 continue
 
-            if next_date <= until_date and done != 'false':
+            if next_date <= until_date and done != False:
                 insert_statements.append((t_id, next_date))
 
         cursor = self.db.cursor()
@@ -227,4 +227,4 @@ class Tasker(object):
         cursor.execute(Queries.SELECT_INCOMPLETE_TIS)
         self.db.commit()
 
-        return [TaskInstance(t[0], t[1], t[2], 'false') for t in cursor.fetchall()]
+        return [TaskInstance(t[0], t[1], t[2], False) for t in cursor.fetchall()]
