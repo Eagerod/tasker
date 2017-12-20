@@ -1,17 +1,26 @@
-import sqlite3
 from datetime import date
 from unittest import TestCase
 
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
+
+from src.models import Base, Task
 from src.tasker import Tasker, DuplicateNameException, InvalidStartDateException, InvalidCadenceException, TaskInstance
 
 
 class TaskerTest(TestCase):
     def setUp(self):
         super(TaskerTest, self).setUp()
-        sqlite3.register_adapter(bool, int)
-        sqlite3.register_converter("BOOLEAN", lambda v: bool(int(v)))
 
-        self.db = sqlite3.connect(":memory:", detect_types=sqlite3.PARSE_DECLTYPES)
+        engine = create_engine('sqlite://')
+        Base.metadata.create_all(engine)
+        Base.metadata.bind = engine
+
+        session = sessionmaker(bind=engine)
+
+        self.db = session()
+
+        self.tasker = Tasker(self.db)
 
     def test_create_task(self):
         tasker = Tasker(self.db)
@@ -21,23 +30,19 @@ class TaskerTest(TestCase):
         tasker.create_task('Get gas', 'weekly', date(2016, 11, 5))
         tasker.create_task('Pay bills', 'monthly', date(2016, 11, 4))
 
-        cursor = self.db.cursor()
-        cursor.execute('SELECT id, name, cadence, start FROM tasks ORDER BY start;')
-        self.db.commit()
-
-        tasks = cursor.fetchall()
+        tasks = self.db.query(Task).order_by(Task.start).all()
 
         self.assertEqual(tasks, [
-            (1, 'Fix bike', 'once', date(2016, 11, 2)),
-            (2, 'Make coffee', 'daily', date(2016, 11, 3)),
-            (4, 'Pay bills', 'monthly', date(2016, 11, 4)),
-            (3, 'Get gas', 'weekly', date(2016, 11, 5))
+            Task(id=1, name='Fix bike', cadence='once', start=date(2016, 11, 2)),
+            Task(id=2, name='Make coffee', cadence='daily', start=date(2016, 11, 3)),
+            Task(id=4, name='Pay bills', cadence='monthly', start=date(2016, 11, 4)),
+            Task(id=3, name='Get gas', cadence='weekly', start=date(2016, 11, 5))
         ])
 
     def test_create_task_duplicate(self):
         tasker = Tasker(self.db)
 
-        tasker.create_task('Make coffee', 'daily', '2016-11-03')
+        tasker.create_task('Make coffee', 'daily', date(2016, 11, 3))
         self.assertRaises(DuplicateNameException, tasker.create_task, 'Make coffee', 'daily', date(2016, 11, 3))
 
     def test_create_task_date_not_possible(self):
@@ -60,32 +65,20 @@ class TaskerTest(TestCase):
         tasker.create_task('Pay bills', 'monthly', date(2016, 11, 4))
 
         tasker.schedule_tasks()
-
-        cursor = self.db.cursor()
-        cursor.execute('SELECT task, date, done FROM tis ORDER BY date;')
-        self.db.commit()
-
-        tis = cursor.fetchall()
+        tis = self.db.query(TaskInstance).order_by(TaskInstance.date).all()
 
         self.assertEqual(tis, [
-            (1, date(2016, 11, 2), False),
-            (2, date(2016, 11, 3), False),
-            (4, date(2016, 11, 4), False),
-            (3, date(2016, 11, 5), False)
+            TaskInstance(id=1, task=1, date=date(2016, 11, 2), done=False),
+            TaskInstance(id=2, task=2, date=date(2016, 11, 3), done=False),
+            TaskInstance(id=4, task=4, date=date(2016, 11, 4), done=False),
+            TaskInstance(id=3, task=3, date=date(2016, 11, 5), done=False)
         ])
 
     def test_schedule_tasks_nothing_exists(self):
         tasker = Tasker(self.db)
 
         tasker.schedule_tasks()
-
-        cursor = self.db.cursor()
-        cursor.execute('SELECT task, date, done FROM tis ORDER BY date;')
-        self.db.commit()
-
-        tis = cursor.fetchall()
-
-        self.assertEqual(tis, [])
+        self.assertEqual([], self.db.query(TaskInstance).all())
 
     def test_schedule_tasks_new_year(self):
         tasker = Tasker(self.db)
@@ -97,15 +90,11 @@ class TaskerTest(TestCase):
         tasker.complete_task_instance(1)
         tasker.schedule_tasks()
 
-        cursor = self.db.cursor()
-        cursor.execute('SELECT task, date, done FROM tis ORDER BY date;')
-        self.db.commit()
-
-        tis = cursor.fetchall()
+        tis = self.db.query(TaskInstance).order_by(TaskInstance.date).all()
 
         self.assertEqual(tis, [
-            (1, date(2016, 12, 4), True),
-            (1, date(2017, 1, 4), False)
+            TaskInstance(id=1, task=1, date=date(2016, 12, 4), done=True),
+            TaskInstance(id=2, task=1, date=date(2017, 1, 4), done=False)
         ])
 
     def test_schedule_tasks_repeated(self):
@@ -120,16 +109,12 @@ class TaskerTest(TestCase):
         tasker.schedule_tasks()
         tasker.schedule_tasks()
 
-        cursor = self.db.cursor()
-        cursor.execute('SELECT task, date, done FROM tis ORDER BY date;')
-        self.db.commit()
-
-        tis = cursor.fetchall()
+        tis = self.db.query(TaskInstance).order_by(TaskInstance.date).all()
 
         self.assertEqual(tis, [
-            (1, date(2016, 11, 3), False),
-            (3, date(2016, 11, 4), False),
-            (2, date(2016, 11, 5), False)
+            TaskInstance(id=1, task=1, date=date(2016, 11, 3), done=False),
+            TaskInstance(id=3, task=3, date=date(2016, 11, 4), done=False),
+            TaskInstance(id=2, task=2, date=date(2016, 11, 5), done=False)
         ])
 
     def test_schedule_tasks_repeated_tasks_done(self):
@@ -149,20 +134,16 @@ class TaskerTest(TestCase):
         tasker.schedule_tasks()
         tasker.schedule_tasks()
 
-        cursor = self.db.cursor()
-        cursor.execute('SELECT task, date, done FROM tis ORDER BY date, task;')
-        self.db.commit()
-
-        tis = cursor.fetchall()
+        tis = self.db.query(TaskInstance).order_by(TaskInstance.date, TaskInstance.task).all()
 
         self.assertEqual(tis, [
-            (1, date(2016, 11, 2), True),
-            (2, date(2016, 11, 3), True),
-            (2, date(2016, 11, 4), False),
-            (4, date(2016, 11, 4), True),
-            (3, date(2016, 11, 5), True),
-            (3, date(2016, 11, 12), False),
-            (4, date(2016, 12, 4), False)
+            TaskInstance(id=1, task=1, date=date(2016, 11, 2), done=True),
+            TaskInstance(id=2, task=2, date=date(2016, 11, 3), done=True),
+            TaskInstance(id=5, task=2, date=date(2016, 11, 4), done=False),
+            TaskInstance(id=4, task=4, date=date(2016, 11, 4), done=True),
+            TaskInstance(id=3, task=3, date=date(2016, 11, 5), done=True),
+            TaskInstance(id=6, task=3, date=date(2016, 11, 12), done=False),
+            TaskInstance(id=7, task=4, date=date(2016, 12, 4), done=False)
         ])
 
     def test_complete_task_instance(self):
@@ -173,14 +154,10 @@ class TaskerTest(TestCase):
         tasker.schedule_tasks()
         tasker.complete_task_instance(1)
 
-        cursor = self.db.cursor()
-        cursor.execute('SELECT task, date, done FROM tis ORDER BY date;')
-        self.db.commit()
-
-        tis = cursor.fetchall()
+        tis = self.db.query(TaskInstance).all()
 
         self.assertEqual(tis, [
-            (1, date(2016, 11, 3), True)
+            TaskInstance(id=1, task=1, date=date(2016, 11, 3), done=True)
         ])
 
     def test_get_incomplete_task_instances(self):
@@ -196,9 +173,9 @@ class TaskerTest(TestCase):
         tis = tasker.get_incomplete_task_instances()
 
         self.assertEqual(tis, [
-            TaskInstance(1, 'Make coffee', date(2016, 11, 3), False),
-            TaskInstance(3, 'Pay bills', date(2016, 11, 4), False),
-            TaskInstance(2, 'Get gas', date(2016, 11, 5), False)
+            (1, 'Make coffee', date(2016, 11, 3), False),
+            (3, 'Pay bills', date(2016, 11, 4), False),
+            (2, 'Get gas', date(2016, 11, 5), False)
         ])
 
     def test_tasker_full_scenario(self):
@@ -217,19 +194,15 @@ class TaskerTest(TestCase):
         # Schedule next iteration of every task.
         tasker.schedule_tasks()
 
-        cursor = self.db.cursor()
-        cursor.execute('SELECT task, date, done FROM tis ORDER BY date, task;')
-        self.db.commit()
-
-        tis = cursor.fetchall()
+        tis = self.db.query(TaskInstance).order_by(TaskInstance.date, TaskInstance.task).all()
 
         self.assertEqual(tis, [
-            (1, date(2016, 11, 3), True),
-            (1, date(2016, 11, 4), False),
-            (3, date(2016, 11, 4), True),
-            (2, date(2016, 11, 5), True),
-            (2, date(2016, 11, 12), False),
-            (3, date(2016, 12, 4), False)
+            TaskInstance(id=1, task=1, date=date(2016, 11, 3), done=True),
+            TaskInstance(id=4, task=1, date=date(2016, 11, 4), done=False),
+            TaskInstance(id=3, task=3, date=date(2016, 11, 4), done=True),
+            TaskInstance(id=2, task=2, date=date(2016, 11, 5), done=True),
+            TaskInstance(id=5, task=2, date=date(2016, 11, 12), done=False),
+            TaskInstance(id=6, task=3, date=date(2016, 12, 4), done=False)
         ])
 
     def test_tasker_full_scenario_schedule_complete(self):
@@ -245,13 +218,9 @@ class TaskerTest(TestCase):
 
         tasker.schedule_tasks(until_date=date(2016, 11, 11))
 
-        cursor = self.db.cursor()
-        cursor.execute('SELECT task, date, done FROM tis ORDER BY date, task;')
-        self.db.commit()
-
-        tis = cursor.fetchall()
+        tis = self.db.query(TaskInstance).order_by(TaskInstance.date, TaskInstance.task).all()
 
         self.assertEqual(tis, [
-            (2, date(2016, 11, 4), True),
-            (1, date(2016, 11, 5), True)
+            TaskInstance(id=2, task=2, date=date(2016, 11, 4), done=True),
+            TaskInstance(id=1, task=1, date=date(2016, 11, 5), done=True)
         ])

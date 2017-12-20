@@ -1,10 +1,11 @@
-from collections import namedtuple
 from datetime import date
 
+from sqlalchemy import func
+from sqlalchemy.types import Boolean
+from sqlalchemy.sql.expression import and_, literal_column
+
 from intervals.interval_factory import IntervalFactory, UnsupportedIntervalException
-
-
-TaskInstance = namedtuple('TaskInstance', ['id', 'task', 'date', 'done'])
+from models import Task, TaskInstance
 
 
 class TaskerException(Exception):
@@ -23,88 +24,15 @@ class InvalidCadenceException(TaskerException):
     pass
 
 
-class Queries(object):
-    CREATE_TASKS_TABLE = '''
-        CREATE TABLE IF NOT EXISTS tasks (
-            id INTEGER PRIMARY KEY,
-            name TEXT,
-            cadence TEXT,
-            start DATE
-        );
-    '''
-    CREATE_TASK_INSTANCES_TABLE = '''
-        CREATE TABLE IF NOT EXISTS tis (
-            id INTEGER PRIMARY KEY,
-            task INT,
-            date DATE,
-            done BOOLEAN DEFAULT 0
-        );
-    '''
-    CREATE_LATEST_TIS_VIEW = '''
-        CREATE VIEW IF NOT EXISTS latest_tis AS
-            SELECT ti.id AS id, ti.task AS task, ti.date AS date, ti.done AS done FROM tis ti
-            JOIN (
-                SELECT task, max(date) AS date FROM tis GROUP BY task
-            ) mti
-            ON mti.task = ti.task AND ti.date = mti.date;
-    '''
-    SELECT_SCHEDULABLE_TASKS = '''
-        SELECT t.id, t.name, t.cadence, t.start, ti.date, ti.done
-        FROM tasks t
-        LEFT JOIN (
-            SELECT task, date, done FROM latest_tis
-        ) ti ON t.id = ti.task
-        GROUP BY t.id, t.name, t.cadence, t.start, ti.done
-        ORDER BY t.id, ti.done;
-    '''
-    SELECT_TASK_BY_NAME = '''
-        SELECT count(*) FROM tasks WHERE name = ?;
-    '''
-    SELECT_INCOMPLETE_TIS = '''
-        SELECT ti.id, t.name, ti.date
-        FROM tasks t
-        JOIN tis ti ON ti.task = t.id
-        WHERE ti.done = 0
-        ORDER BY ti.date;
-    '''
-    INSERT_TASK = '''
-        INSERT INTO tasks (name, cadence, start) VALUES (?,?,?)
-    '''
-    INSERT_TI = '''
-        INSERT INTO tis (task, date) VALUES (?,?);
-    '''
-    UPDATE_TI_DONE = '''
-        UPDATE tis SET done = 1 WHERE id = ?
-    '''
-
-
 class Tasker(object):
     """
     Class that manages recurring tasks in an SQLite3 database.
     """
     def __init__(self, database):
         """
-        :param database: The sqlite3 database connection for this instance.
+        :param database: An SQLAlchemy database session.
         """
         self.db = database
-        self._db_initialized = False
-
-    def _initialize_db(self):
-        """
-        Initialize the database by ensuring that the required tables are present.
-
-        NOTE: Currently has no support whatsoever for managing schema evolution.
-        """
-        if self._db_initialized:
-            return
-
-        cursor = self.db.cursor()
-        cursor.execute(Queries.CREATE_TASKS_TABLE)
-        cursor.execute(Queries.CREATE_TASK_INSTANCES_TABLE)
-        cursor.execute(Queries.CREATE_LATEST_TIS_VIEW)
-        self.db.commit()
-
-        self._db_initialized = True
 
     def _get_next_date(self, cadence, start_date, last_date):
         """
@@ -136,15 +64,10 @@ class Tasker(object):
 
         :raises DuplicateNameException: When a task with this name already exists.
         """
-        self._initialize_db()
+        task = self.db.query(Task).filter(Task.name == name).first()
 
-        cursor = self.db.cursor()
-        cursor.execute(Queries.SELECT_TASK_BY_NAME, (name,))
-        self.db.commit()
-
-        for row in cursor:
-            if row != (0,):
-                raise DuplicateNameException('Task "{}" already exists.'.format(name))
+        if task:
+            raise DuplicateNameException('Task "{}" already exists.'.format(name))
 
     def assert_start_date_valid(self, cadence, start_date):
         """
@@ -167,11 +90,9 @@ class Tasker(object):
         """
         self.assert_cadence_valid(cadence)
         self.assert_start_date_valid(cadence, start_date)
-
-        self._initialize_db()
         self.assert_name_unique(name)
-        cursor = self.db.cursor()
-        cursor.execute(Queries.INSERT_TASK, (name, cadence, start_date))
+
+        self.db.add(Task(name=name, cadence=cadence, start=start_date))
         self.db.commit()
 
     def schedule_tasks(self, until_date=None):
@@ -180,33 +101,42 @@ class Tasker(object):
         that it exists in the database with the earliest of possible dates. i.e. The next task instance should be
         scheduled if it's not in the future.
         """
-        self._initialize_db()
-
-        cursor = self.db.cursor()
-        cursor.execute(Queries.SELECT_SCHEDULABLE_TASKS)
-        self.db.commit()
+        max_ti_dates = self.db \
+            .query(TaskInstance.task, func.max(TaskInstance.date).label('date')) \
+            .group_by(TaskInstance.task) \
+            .subquery()
+        latest_tis = self.db \
+            .query(TaskInstance) \
+            .join(max_ti_dates, and_(
+                TaskInstance.task == max_ti_dates.c.task,
+                TaskInstance.date == max_ti_dates.c.date
+            )).subquery()
+        scheduleable = self.db \
+            .query(Task.id,
+                   Task.name,
+                   Task.cadence,
+                   Task.start,
+                   latest_tis.c.date,
+                   latest_tis.c.done) \
+            .outerjoin(latest_tis, Task.id == latest_tis.c.task) \
+            .order_by(Task.id)
 
         if not until_date:
             until_date = date.today()
 
-        insert_statements = []
-
         # This could probably be cleaned up a lot, likely by fixing the query, more than anything.
-        for row in cursor:
+        for row in scheduleable.all():
             # Three possible cases.
             #    - The most recent ti is done. (Check date and maybe create a new one)
             #    - The most recent ti is not done. (Leave it)
             #    - There has never been a ti. (Make one)
-            t_id, name, cadence, start, last_date, done = row
-            next_date = self._get_next_date(cadence, start, last_date)
-            if next_date == last_date or next_date > until_date:
+            next_date = self._get_next_date(row.cadence, row.start, row.date)
+            if next_date == row.date or next_date > until_date:
                 continue
 
-            if next_date <= until_date and done != False:
-                insert_statements.append((t_id, next_date))
+            if next_date <= until_date and row.done is not False:
+                self.db.add(TaskInstance(task=row.id, date=next_date))
 
-        cursor = self.db.cursor()
-        cursor.executemany(Queries.INSERT_TI, insert_statements)
         self.db.commit()
 
     def complete_task_instance(self, ti_id):
@@ -215,16 +145,15 @@ class Tasker(object):
 
         :param ti_id: The id for the task instance.
         """
-        cursor = self.db.cursor()
-        cursor.execute(Queries.UPDATE_TI_DONE, (ti_id,))
+        self.db.query(TaskInstance).filter(TaskInstance.id == ti_id).update({'done': True})
         self.db.commit()
 
     def get_incomplete_task_instances(self):
         """
         Returns a list of named tuples of the task instances that are still pending. Sorted by scheduled date ascending.
         """
-        cursor = self.db.cursor()
-        cursor.execute(Queries.SELECT_INCOMPLETE_TIS)
-        self.db.commit()
-
-        return [TaskInstance(t[0], t[1], t[2], False) for t in cursor.fetchall()]
+        return self.db \
+            .query(TaskInstance.id, Task.name, TaskInstance.date, literal_column('0', Boolean)) \
+            .join(Task, Task.id == TaskInstance.task) \
+            .filter(TaskInstance.done == False) \
+            .order_by(TaskInstance.date).all()  # noqa: E712 (== operator with boolean not allowed for regular Python)
