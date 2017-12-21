@@ -1,10 +1,13 @@
 import argparse
 import os
-import sqlite3
 import sys
 from datetime import date
 
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
+
 from tasker import Tasker, InvalidStartDateException, DuplicateNameException, InvalidCadenceException
+from models import Base, Task, TaskInstance
 from intervals.interval_factory import IntervalFactory, UnsupportedIntervalException
 
 
@@ -17,12 +20,15 @@ class TaskerCliOptions(object):
 class TaskerCli(object):
     def __init__(self, database=None):
         if not database:
-            database = os.path.join(os.path.expanduser('~'), '.tasker.sqlite')
+            database = 'sqlite:///{}'.join('/'.join(os.path.expanduser('~'), '.tasker.sqlite'))
 
-        sqlite3.register_adapter(bool, int)
-        sqlite3.register_converter("BOOLEAN", lambda v: bool(int(v)))
+        engine = create_engine(database)
+        Base.metadata.create_all(engine)
+        Base.metadata.bind = engine
 
-        self.db = sqlite3.connect(database, detect_types=sqlite3.PARSE_DECLTYPES)
+        session = sessionmaker(bind=engine)
+        self.db = session()
+
         self.tasker = Tasker(self.db)
 
         self._run_path = sys.argv[0]
@@ -80,7 +86,8 @@ class TaskerCli(object):
         if len(task_instances):
             print 'Things to do:'
             for row in task_instances:
-                print '  {}. ({}) {}'.format(str(row.id).rjust(5), row.date, row.task)
+                ti_id, name, date, done = row
+                print '  {}. ({}) {}'.format(str(ti_id).rjust(5), date, name)
             print 'To complete any task, use:\n    {} {} N'.format(self._run_path, TaskerCliOptions.COMPLETE)
 
     def _get_task_name(self):
