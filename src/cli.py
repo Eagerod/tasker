@@ -143,7 +143,7 @@ class TaskerCli(object):
 def do_program():
     parser = argparse.ArgumentParser(description='Pretty basic interval task management system')
 
-    parser.add_argument('--database', '-d', help='path to database file, defaults to ~/.tasker.sqlite')
+    parser.add_argument('--database', '-d', help='database uri, defaults to sqlite:///$HOME/.tasker.sqlite')
 
     subparsers = parser.add_subparsers(dest='command', help='sub-commands')
 

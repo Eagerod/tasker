@@ -26,7 +26,7 @@ class InvalidCadenceException(TaskerException):
 
 class Tasker(object):
     """
-    Class that manages recurring tasks in an SQLite3 database.
+    Class that manages recurring tasks in an SQLAlchemy managed database.
     """
     def __init__(self, database):
         """
