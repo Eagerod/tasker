@@ -4,7 +4,7 @@ import setuptools
 setuptools.setup(
     name='tasker',
     license='MIT',
-    version='0.2.0',
+    version='0.3.0',
     description='manage recurring tasks on the command line.',
     author='Aleem Haji',
     author_email='hajial@gmail.com',
@@ -14,5 +14,8 @@ setuptools.setup(
         'console_scripts': [
             'tasker = tasker.cli:do_program'
         ]
-    }
+    },
+    install_requires=[
+        'sqlalchemy~=1.1.15'
+    ]
 )
