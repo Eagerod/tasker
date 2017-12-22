@@ -1,10 +1,13 @@
 import argparse
 import os
-import sqlite3
 import sys
 from datetime import date
 
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
+
 from tasker import Tasker, InvalidStartDateException, DuplicateNameException, InvalidCadenceException
+from models import Base, Task, TaskInstance
 from intervals.interval_factory import IntervalFactory, UnsupportedIntervalException
 
 
@@ -18,19 +21,30 @@ class TaskerCliOptions(object):
 class TaskerCli(object):
     def __init__(self, database=None):
         if not database:
-            database = os.path.join(os.path.expanduser('~'), '.tasker.sqlite')
+            database = 'sqlite:///{}'.format(os.path.join(os.path.expanduser('~'), '.tasker.sqlite'))
 
-        self._db_path = database
-        self.db = sqlite3.connect(database)
+        engine = create_engine(database)
+        Base.metadata.create_all(engine)
+        Base.metadata.bind = engine
+
+        session = sessionmaker(bind=engine)
+        self.db = session()
+
         self.tasker = Tasker(self.db)
 
         self._run_path = sys.argv[0]
         # Scan through $PATH, and determine if this could be run without the full path.
+        run_directory = os.path.dirname(sys.argv[0])
+        if run_directory[-1] != os.path.sep:
+            run_directory = run_directory + os.path.sep
+        len_run_directory = len(run_directory)
+
         for a_path in os.environ['PATH'].split(os.pathsep):
             if a_path[-1] != os.path.sep:
                 a_path = a_path + os.path.sep
-            if self._run_path.find(a_path, 0, len(a_path)) == 0:
-                self._run_path = self._run_path[len(a_path):]
+            if a_path == run_directory:
+                self._run_path = self._run_path[len_run_directory:]
+                break
 
         # Attempt to load up all intervals from the intervals directory.
         self.all_cadences = {}
@@ -92,12 +106,17 @@ class TaskerCli(object):
         if len(task_instances):
             print 'Things to do:'
             for row in task_instances:
-                print '  {}. ({}) {}'.format(str(row.id).rjust(5), row.date, row.task)
-            print 'To complete any task, use:\n    {} complete N'.format(self._run_path)
+                ti_id, name, date, done = row
+                print '  {}. ({}) {}'.format(str(ti_id).rjust(5), date, name)
+            print 'To complete any task, use:\n    {} {} N'.format(self._run_path, TaskerCliOptions.COMPLETE)
 
     def _get_task_name(self):
         while True:
-            name = raw_input('Enter task name: ')
+            name = raw_input('Enter task name: ').strip()
+
+            if not name:
+                continue
+
             try:
                 self.tasker.assert_name_unique(name)
                 return name
@@ -111,7 +130,11 @@ class TaskerCli(object):
         while True:
             print 'Available cadences:'
             print '\n'.join(cadence_lst)
-            cadence = raw_input('Select cadence: ')
+            cadence = raw_input('Select cadence: ').strip()
+
+            if not cadence:
+                continue
+
             try:
                 cadence = self.all_cadences[all_cadences_keys[int(cadence) - 1]][0]
             except ValueError:
@@ -126,7 +149,11 @@ class TaskerCli(object):
 
     def _get_first_date(self):
         while True:
-            start = raw_input('When does this start (YYYY-MM-DD): ')
+            start = raw_input('When does this start (YYYY-MM-DD; default today): ').strip()
+
+            if start == '':
+                return date.today()
+
             try:
                 return date(*[int(i) for i in start.split('-')])
             except (TypeError, ValueError) as e:
@@ -136,14 +163,13 @@ class TaskerCli(object):
 def do_program():
     parser = argparse.ArgumentParser(description='Pretty basic interval task management system')
 
-    parser.add_argument('--database', '-d', help='path to database file, defaults to ~/.tasker.sqlite')
+    parser.add_argument('--database', '-d', help='database uri, defaults to sqlite:///$HOME/.tasker.sqlite')
 
     subparsers = parser.add_subparsers(dest='command', help='sub-commands')
 
-    create_parser = subparsers.add_parser(TaskerCliOptions.CREATE, help='create a task')
+    subparsers.add_parser(TaskerCliOptions.CREATE, help='create a task')
+    subparsers.add_parser(TaskerCliOptions.CHECK, help='print pending/incomplete tasks')
 
-    check_parser = subparsers.add_parser(TaskerCliOptions.CHECK, help='print pending/incomplete tasks')
-    
     complete_parser = subparsers.add_parser(TaskerCliOptions.COMPLETE, help='complete an existing task')
     complete_parser.add_argument('task_id', help='task ID to complete')
 
@@ -155,7 +181,11 @@ def do_program():
     tasker = TaskerCli(args.database)
 
     if args.command == TaskerCliOptions.CREATE:
-        tasker.create_task()
+        try:
+            tasker.create_task()
+        except (KeyboardInterrupt, EOFError):
+            print ''
+            sys.exit(-1)
     elif args.command == TaskerCliOptions.CHECK:
         tasker.print_tasks()
     elif args.command == TaskerCliOptions.COMPLETE:

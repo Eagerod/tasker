@@ -48,5 +48,7 @@ def coverage():
 
 
 @task
-def install_globally():
-    local('pip install --upgrade .')
+def install_globally(extras=''):
+    if extras:
+        extras = '[{}]'.format(extras)
+    local('pip install --upgrade .{}'.format(extras))
