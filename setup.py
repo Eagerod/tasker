@@ -17,5 +17,8 @@ setuptools.setup(
     },
     install_requires=[
         'sqlalchemy~=1.1.15'
-    ]
+    ],
+    extras_require={
+        'mysql': 'mysql-python~=1.2.5'
+    }
 )
