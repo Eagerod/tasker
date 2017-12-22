@@ -4,11 +4,11 @@ import setuptools
 setuptools.setup(
     name='tasker',
     license='MIT',
-    version='0.3.0',
+    version='0.3.1',
     description='manage recurring tasks on the command line.',
     author='Aleem Haji',
     author_email='hajial@gmail.com',
-    packages=['tasker', 'tasker.intervals'],
+    packages=['tasker', 'tasker.intervals', 'tasker.models'],
     package_dir={'tasker': 'src'},
     entry_points={
         'console_scripts': [
