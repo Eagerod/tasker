@@ -20,7 +20,7 @@ class TaskerCliOptions(object):
 class TaskerCli(object):
     def __init__(self, database=None):
         if not database:
-            database = 'sqlite:///{}'.join('/'.join(os.path.expanduser('~'), '.tasker.sqlite'))
+            database = 'sqlite:///{}'.format(os.path.join(os.path.expanduser('~'), '.tasker.sqlite'))
 
         engine = create_engine(database)
         Base.metadata.create_all(engine)
