@@ -1,6 +1,7 @@
 import os
+import sys
 
-from fabric.api import local, task, runs_once
+from fabric.api import local, task, runs_once, warn_only
 
 
 PROJECT_ROOT_DIRECTORY = os.path.dirname(os.path.realpath(__file__))
@@ -37,18 +38,27 @@ def coverage():
     # that they're a part of a coverage run.
     coverage_file = os.path.join(PROJECT_ROOT_DIRECTORY, '.coveragerc')
     sitecustomize_path = os.path.join(PROJECT_ROOT_DIRECTORY, 'sitecustomize.py')
+    sitecustomize_pyc_path = '{}c'.format(sitecustomize_path)
 
     sitecustomize_file_contents = 'import coverage\ncoverage.process_startup()\n'
 
     with open(sitecustomize_path, 'w') as f:
         f.write(sitecustomize_file_contents)
 
-    local('coverage erase')
-    local('COVERAGE_PROCESS_START={} coverage run -m unittest discover -v -t . -s tests'.format(coverage_file))
-    local('coverage combine')
-    local('coverage report -m')
+    with warn_only():
+        r1 = local('coverage erase')
+        r2 = local('COVERAGE_PROCESS_START={} coverage run -m unittest discover -v -t . -s tests'.format(coverage_file))
+        r3 = local('coverage combine')
+        r4 = local('coverage report -m')
 
     os.unlink(sitecustomize_path)
+
+    # Avoid any residual effects of having a pyc file present.
+    if os.path.exists(sitecustomize_pyc_path):
+        os.unlink(sitecustomize_pyc_path)
+
+    for result in (r for r in (r1, r2, r3, r4) if r.failed):
+        sys.exit(result.return_code)
 
 
 @task
