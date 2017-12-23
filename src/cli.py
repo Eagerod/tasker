@@ -18,11 +18,15 @@ class TaskerCliOptions(object):
 
 
 class TaskerCli(object):
+    DEFAULT_DATABASE_URI = 'sqlite:///{}'.format(os.path.join(os.path.expanduser('~'), '.tasker.sqlite'))
+
     def __init__(self, database=None):
         if not database:
-            database = 'sqlite:///{}'.format(os.path.join(os.path.expanduser('~'), '.tasker.sqlite'))
+            database = self.DEFAULT_DATABASE_URI
 
-        engine = create_engine(database)
+        self.database_uri = database
+
+        engine = create_engine(self.database_uri)
         Base.metadata.create_all(engine)
         Base.metadata.bind = engine
 
@@ -93,7 +97,14 @@ class TaskerCli(object):
             for row in task_instances:
                 ti_id, name, date, done = row
                 print '{}. ({}) {}'.format(str(ti_id).rjust(rjust), date, name)
-            print 'To complete any task, use:\n    {} {} N'.format(self._run_path, TaskerCliOptions.COMPLETE)
+
+            database_str = ''
+            if self.database_uri != self.DEFAULT_DATABASE_URI:
+                database_str = ' --database "{}" '.format(self.database_uri)
+
+            print 'To complete any task, use:\n    {}{}{} N'.format(
+                self._run_path, database_str, TaskerCliOptions.COMPLETE
+            )
 
     def _get_task_name(self):
         while True:

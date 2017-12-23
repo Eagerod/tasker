@@ -18,7 +18,7 @@ CLI_DUPLICATE_NAME_FORMAT = 'Task "{}" already exists.\n'
 CLI_INVALID_DATE_FORMAT = 'Not a valid (YYYY-MM-DD) ({})\n'
 
 THINGS_TO_DO_STRING = 'Things to do:\n'
-COMPLETE_TASK_FORMAT = 'To complete any task, use:\n    {} complete N\n'
+COMPLETE_TASK_FORMAT = 'To complete any task, use:\n    {} --database "{}" complete N\n'
 
 
 class CliTest(TestCase):
@@ -32,7 +32,7 @@ class CliTest(TestCase):
         cls.db_path = os.path.join(cls.test_root_dir, 'tasker_tests.sqlite')
         cls.db_uri = 'sqlite:///{}'.format(cls.db_path)
 
-        cls.complete_task_string = COMPLETE_TASK_FORMAT.format(cls.cli_path)
+        cls.complete_task_string = COMPLETE_TASK_FORMAT.format(cls.cli_path, cls.db_uri)
         cls._delete_temp_database()
 
     @classmethod
