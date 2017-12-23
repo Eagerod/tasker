@@ -84,10 +84,15 @@ class TaskerCli(object):
     def _print_remaining_tasks(self):
         task_instances = self.tasker.get_incomplete_task_instances()
         if len(task_instances):
+
+            # Get the highest TI id, so that the indent can be exactly 4 spaces in from the longest ID.
+            max_id = max(ti[0] for ti in task_instances)
+            rjust = 4 + len(str(max_id))
+
             print 'Things to do:'
             for row in task_instances:
                 ti_id, name, date, done = row
-                print '  {}. ({}) {}'.format(str(ti_id).rjust(5), date, name)
+                print '{}. ({}) {}'.format(str(ti_id).rjust(rjust), date, name)
             print 'To complete any task, use:\n    {} {} N'.format(self._run_path, TaskerCliOptions.COMPLETE)
 
     def _get_task_name(self):

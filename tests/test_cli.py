@@ -219,7 +219,7 @@ class CliTest(TestCase):
 
         val = self._call_cli(['check'])
 
-        output_str = '{}      1. (2017-11-06) Do some things\n{}'.format(THINGS_TO_DO_STRING, self.complete_task_string)
+        output_str = '{}    1. (2017-11-06) Do some things\n{}'.format(THINGS_TO_DO_STRING, self.complete_task_string)
         self.assertEqual(val, (0, output_str, ''))
 
         task_instances = self._connect_db().query(TaskInstance).all()
