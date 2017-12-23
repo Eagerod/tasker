@@ -1,6 +1,7 @@
 import os
 from datetime import date
 from subprocess import Popen, PIPE
+from tempfile import NamedTemporaryFile
 from unittest import TestCase
 
 from sqlalchemy import create_engine
@@ -29,24 +30,21 @@ class CliTest(TestCase):
         cls.root_dir = os.path.dirname(cls.test_root_dir)
 
         cls.cli_path = os.path.join(cls.root_dir, 'src', 'cli.py')
-        cls.db_path = os.path.join(cls.test_root_dir, 'tasker_tests.sqlite')
-        cls.db_uri = 'sqlite:///{}'.format(cls.db_path)
 
         cls.complete_task_string = COMPLETE_TASK_FORMAT.format(cls.cli_path)
-        cls._delete_temp_database()
 
-    @classmethod
-    def _delete_temp_database(cls):
-        if os.path.exists(cls.db_path):
-            os.unlink(cls.db_path)
+    def setUp(self):
+        super(CliTest, self).setUp()
+        self.tmp_db = NamedTemporaryFile(delete=False)
+        self.db_path = os.path.join(self.test_root_dir, self.tmp_db.name)
+        self.db_uri = 'sqlite:///{}'.format(self.db_path)
 
     def tearDown(self):
         super(CliTest, self).tearDown()
-        self._delete_temp_database()
+        os.unlink(self.tmp_db.name)
 
-    @classmethod
-    def _connect_db(cls):
-        engine = create_engine(cls.db_uri)
+    def _connect_db(self):
+        engine = create_engine(self.db_uri)
         Base.metadata.create_all(engine)
         Base.metadata.bind = engine
 
