@@ -7,7 +7,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
 from tasker import Tasker, InvalidStartDateException, DuplicateNameException, InvalidCadenceException
-from models import Base, Task, TaskInstance
+from models import Base
 from intervals.interval_factory import IntervalFactory, UnsupportedIntervalException
 
 
@@ -155,18 +155,18 @@ def do_program():
 
     args = parser.parse_args()
 
-    tasker = TaskerCli(args.database)
+    tasker_cli = TaskerCli(args.database)
 
     if args.command == TaskerCliOptions.CREATE:
         try:
-            tasker.create_task()
+            tasker_cli.create_task()
         except (KeyboardInterrupt, EOFError):
             print ''
             sys.exit(-1)
     elif args.command == TaskerCliOptions.CHECK:
-        tasker.print_tasks()
+        tasker_cli.print_tasks()
     elif args.command == TaskerCliOptions.COMPLETE:
-        tasker.complete_task(args.task_id)
+        tasker_cli.complete_task(args.task_id)
     else:  # pragma: no cover
         # Shouldn't actually be reachable, but a good failsafe in case commands are added to the list without actually
         # being implemented.
