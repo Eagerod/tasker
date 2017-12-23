@@ -98,7 +98,7 @@ class TaskerCli(object):
                 ti_id, name, date, done = row
                 print '{}. ({}) {}'.format(str(ti_id).rjust(rjust), date, name)
 
-            database_str = ''
+            database_str = ' '
             if self.database_uri != self.DEFAULT_DATABASE_URI:
                 database_str = ' --database "{}" '.format(self.database_uri)
 
