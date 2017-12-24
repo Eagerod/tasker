@@ -10,7 +10,11 @@ Since this is still a personal project, and hasn't been released to the general,
 It can still be installed using pip with:
 
 ```
-pip install git@github.com:eagerod/tasker@<version>
+pip install https://github.com/eagerod/tasker.git@0.3.4#egg=tasker
+```
+or
+```
+pip install git+ssh://github.com/eagerod/tasker.git@0.3.4#egg=tasker
 ```
 
 ## Usage
@@ -61,7 +65,11 @@ Note: Tasker does support using MySQL instead of sqlite3.
 To use it, install Tasker with the mysql feature, and provide a database parameter when making command line calls:
 
 ```
-pip install git@github.com:eagerod/tasker@<version>[mysql]
+pip install https://github.com/eagerod/tasker.git@0.3.4#egg=tasker[mysql]
+```
+or
+```
+pip install git+ssh://github.com/eagerod/tasker.git@0.3.4#egg=tasker[mysql]
 ```
 
 Create a database for Tasker in your mysql instance, and run
